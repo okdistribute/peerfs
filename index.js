@@ -31,20 +31,17 @@ class KappaDrive {
       next(null, ops)
     })
     this.core.use('kv', this.kvidx)
-    this.open(() => {
-      debug('ready to go')
-    })
   }
 
   _getDrive (metadataKey, contentKey, cb) {
-    debug('getting metadata', metadataKey)
+    debug('getting metadata feed', metadataKey)
     this.core.feed(metadataKey, (err, metadata) => {
       console.log(err, metadata)
       if (err) return cb(err)
       console.log('getting content feed', contentKey)
       this.core.feed(contentKey, (err, content) => {
         if (err) return cb(err)
-        console.log('getting drive')
+        console.log('got', metadata.key.toString('hex'), content.key.toString('hex'))
         var drive = hyperdrive(this._storage, {metadata, content})
         drive.ready(() => cb(null, drive))
       })
@@ -53,7 +50,9 @@ class KappaDrive {
 
   readFile (filename, cb) {
     if (!this._open) throw new Error('not ready yet, try calling .ready')
+    debug('waiting for ready',)
     this.core.ready('kv', () => {
+      debug('kv.get', filename)
       this.core.api.kv.get(filename, (err, values) => {
         if (err && !err.notFound) return cb(err)
         // get metadata and content feeds for the values here
@@ -84,8 +83,6 @@ class KappaDrive {
       debug('writing', filename, content)
       this.drive.writeFile(filename, content, (err) => {
         if (err) return cb(err)
-        // whats the seq here?
-        //
         var res = {
           filename,
           metadata: this.drive.metadata.key.toString('hex'),
@@ -112,8 +109,7 @@ class KappaDrive {
   }
 
   ready (cb) {
-    if (this._ready) return cb()
-    console.log('opening')
+    if (this._open) return cb()
     this.open(cb)
   }
 }

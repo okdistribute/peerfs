@@ -1,7 +1,10 @@
 var raf = require('random-access-file')
+var rimraf = require('rimraf')
 var test = require('tape')
 var pump = require('pump')
 var kappadrive = require('./')
+
+rimraf.sync('./db')
 
 test('test write and read latest value', function (t) {
   var drive = kappadrive('./db')
