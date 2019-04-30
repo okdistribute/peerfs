@@ -1,5 +1,6 @@
 var ram = require('random-access-memory')
 var test = require('tape')
+var pump = require('pump')
 var kappadrive = require('./')
 
 test('test default to latest value', function (t) {
@@ -11,28 +12,37 @@ test('test default to latest value', function (t) {
       t.error(err)
       drive.writeFile('/hello.txt', 'mundo', function (err) {
         t.error(err)
-        writeSecond()
+        sync()
       })
     })
   })
 
-  function writeSecond () {
+  function writeSecond (cb) {
     drive2.ready(() => {
       drive2.writeFile('/hello.txt', 'verden', function (err) {
         t.error(err)
-        sync()
+        cb()
       })
     })
   }
 
   function sync () {
     var stream = drive.replicate()
-    var res = stream.pipe(drive2.replicate()).pipe(stream)
-    res.on('end', () => {
-      drive.readFile('/hello.txt', function (err, data) {
-        t.error(err)
-        // drive has the new changes
-        console.log(data)
+    var d = drive2.replicate()
+    pump(d, stream, d, (err) => {
+      t.error(err)
+      writeSecond(() => {
+        var stream = drive.replicate()
+        var d = drive2.replicate()
+        pump(d, stream, d, (err) => {
+          t.error(err)
+          drive.readFile('/hello.txt', function (err, data) {
+            t.error(err)
+            // drive has the new changes
+            t.same(data.toString(), 'verden')
+            t.end()
+          })
+        })
       })
     })
   }
