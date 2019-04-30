@@ -1,4 +1,3 @@
-var raf = require('random-access-file')
 var rimraf = require('rimraf')
 var test = require('tape')
 var pump = require('pump')
@@ -14,16 +13,19 @@ test('test write and read latest value', function (t) {
       t.error(err)
       drive.readFile('/hello.txt', function (err, content) {
         t.error(err)
-        t.same(content, 'world')
+        t.same(content.toString(), 'world')
         t.end()
       })
     })
   })
 })
 
-test.skip('test default to latest value', function (t) {
-  var drive = kappadrive(raf)
-  var drive2 = kappadrive(raf)
+rimraf.sync('./db-1')
+rimraf.sync('./db-2')
+
+test('test default to latest value', function (t) {
+  var drive = kappadrive('./db-1')
+  var drive2 = kappadrive('./db-2')
 
   drive.ready(() => {
     drive.writeFile('/hello.txt', 'world', function (err) {

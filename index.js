@@ -27,21 +27,23 @@ class KappaDrive {
         content: value.content,
         links: value.links || []
       })
-      debug('pushing', ops)
+      debug('ops', ops)
       next(null, ops)
     })
     this.core.use('kv', this.kvidx)
   }
 
-  _getDrive (metadataKey, contentKey, cb) {
-    debug('getting metadata feed', metadataKey)
-    this.core.feed(metadataKey, (err, metadata) => {
-      console.log(err, metadata)
+  _getDrive (metadata, content, cb) {
+    if (metadata === this.metadataKey) {
+      metadata = 'metadata'
+      content = 'content'
+    }
+    debug('getting drive feed', metadata, content)
+    this.core.feed(metadata, (err, metadata) => {
       if (err) return cb(err)
-      console.log('getting content feed', contentKey)
-      this.core.feed(contentKey, (err, content) => {
+      this.core.feed(content, (err, content) => {
         if (err) return cb(err)
-        console.log('got', metadata.key.toString('hex'), content.key.toString('hex'))
+        debug('got feeds', metadata, content)
         var drive = hyperdrive(this._storage, {metadata, content})
         drive.ready(() => cb(null, drive))
       })
@@ -50,18 +52,15 @@ class KappaDrive {
 
   readFile (filename, cb) {
     if (!this._open) throw new Error('not ready yet, try calling .ready')
-    debug('waiting for ready',)
     this.core.ready('kv', () => {
-      debug('kv.get', filename)
       this.core.api.kv.get(filename, (err, values) => {
         if (err && !err.notFound) return cb(err)
         // get metadata and content feeds for the values here
-        debug('got', values)
-        if (!values) this.drive.readFile(filename, cb)
+        if (!values.length) this.drive.readFile(filename, cb)
         else {
           var v = values[0]
           var value = JSON.parse(v.value)
-          debug('value', value)
+          debug('readFile for', value)
           this._getDrive(value.metadata, value.content, (err, drive) => {
             if (err) return cb(err)
             drive.readFile(filename, cb)
@@ -77,20 +76,21 @@ class KappaDrive {
 
   writeFile (filename, content, cb) {
     if (!this._open) throw new Error('not ready yet, try calling .ready')
-    this.core.api.kv.get(filename, (err, values) => {
-      if (err && !err.notFound) return cb(err)
-      var links = values ? values.map((v) => version(this.local, v.seq)) : []
-      debug('writing', filename, content)
-      this.drive.writeFile(filename, content, (err) => {
-        if (err) return cb(err)
-        var res = {
-          filename,
-          metadata: this.drive.metadata.key.toString('hex'),
-          content: this.drive.content.key.toString('hex'),
-          links: links
-        }
-        debug('appending', res)
-        this.local.append(JSON.stringify(res), cb)
+    this.core.ready('kv', () => {
+      this.core.api.kv.get(filename, (err, values) => {
+        if (err && !err.notFound) return cb(err)
+        var links = values ? values.map((v) => v.key + '@' + v.seq) : []
+        this.drive.writeFile(filename, content, (err) => {
+          if (err) return cb(err)
+          var res = {
+            filename,
+            metadata: this.drive.metadata.key.toString('hex'),
+            content: this.drive.content.key.toString('hex'),
+            links: links
+          }
+          debug('appending', content, res, content)
+          this.local.append(JSON.stringify(res), cb)
+        })
       })
     })
   }
@@ -102,6 +102,8 @@ class KappaDrive {
       this._getDrive('metadata', 'content', (err, drive) => {
         if (err) return cb(err)
         this.drive = drive
+        this.metadataKey = drive.metadata.key.toString('hex')
+        this.contentKey = drive.content.key.toString('hex')
         this._open = true
         if (cb) cb()
       })
