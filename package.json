@@ -1,0 +1,11 @@
+{
+  "name": "peerfs",
+  "version": "1.0.0",
+  "description": "multiwriter peer to peer filesystem",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "Karissa McKelvey",
+  "license": "MIT"
+}
