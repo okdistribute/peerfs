@@ -15,11 +15,19 @@ class KappaDrive {
     this.kvidx = kv(this._index, function (msg, next) {
       var ops = []
       var msgId = msg.key + '@' + msg.seq
+      try {
+        var value = JSON.parse(msg.value)
+      } catch (err) {
+        return next()
+      }
       ops.push({
-        filename: msg.value.filename,
+        key: value.filename,
         id: msgId,
-        links: msg.value.links | []
+        metadata: value.metadata,
+        content: value.content,
+        links: value.links || []
       })
+      debug('pushing', ops)
       next(null, ops)
     })
     this.core.use('kv', this.kvidx)
@@ -29,10 +37,14 @@ class KappaDrive {
   }
 
   _getDrive (metadataKey, contentKey, cb) {
+    debug('getting metadata', metadataKey)
     this.core.feed(metadataKey, (err, metadata) => {
+      console.log(err, metadata)
       if (err) return cb(err)
+      console.log('getting content feed', contentKey)
       this.core.feed(contentKey, (err, content) => {
         if (err) return cb(err)
+        console.log('getting drive')
         var drive = hyperdrive(this._storage, {metadata, content})
         drive.ready(() => cb(null, drive))
       })
@@ -41,18 +53,22 @@ class KappaDrive {
 
   readFile (filename, cb) {
     if (!this._open) throw new Error('not ready yet, try calling .ready')
-    this.core.api.kv.get(filename, (err, values) => {
-      if (err && !err.notFound) return cb(err)
-      // get metadata and content feeds for the values here
-      if (!values) this.drive.readFile(filename, cb)
-      else {
-        var v = values[0]
-        debug('v', v)
-        this._getDrive(v.metadata, v.content, (err, drive) => {
-          if (err) return cb(err)
-          drive.readFile(filename, cb)
-        })
-      }
+    this.core.ready('kv', () => {
+      this.core.api.kv.get(filename, (err, values) => {
+        if (err && !err.notFound) return cb(err)
+        // get metadata and content feeds for the values here
+        debug('got', values)
+        if (!values) this.drive.readFile(filename, cb)
+        else {
+          var v = values[0]
+          var value = JSON.parse(v.value)
+          debug('value', value)
+          this._getDrive(value.metadata, value.content, (err, drive) => {
+            if (err) return cb(err)
+            drive.readFile(filename, cb)
+          })
+        }
+      })
     })
   }
 
@@ -70,12 +86,11 @@ class KappaDrive {
         if (err) return cb(err)
         // whats the seq here?
         //
-        debug('getting', values)
         var res = {
           filename,
           metadata: this.drive.metadata.key.toString('hex'),
           content: this.drive.content.key.toString('hex'),
-          links: [links]
+          links: links
         }
         debug('appending', res)
         this.local.append(JSON.stringify(res), cb)

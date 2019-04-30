@@ -1,11 +1,26 @@
-var ram = require('random-access-memory')
+var raf = require('random-access-file')
 var test = require('tape')
 var pump = require('pump')
 var kappadrive = require('./')
 
-test('test default to latest value', function (t) {
-  var drive = kappadrive(ram)
-  var drive2 = kappadrive(ram)
+test('test write and read latest value', function (t) {
+  var drive = kappadrive('./db')
+
+  drive.ready(() => {
+    drive.writeFile('/hello.txt', 'world', function (err) {
+      t.error(err)
+      drive.readFile('/hello.txt', function (err, content) {
+        t.error(err)
+        t.same(content, 'world')
+        t.end()
+      })
+    })
+  })
+})
+
+test.skip('test default to latest value', function (t) {
+  var drive = kappadrive(raf)
+  var drive2 = kappadrive(raf)
 
   drive.ready(() => {
     drive.writeFile('/hello.txt', 'world', function (err) {
