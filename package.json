@@ -18,6 +18,7 @@
     "tape": "^4.10.1"
   },
   "devDependencies": {
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.6.3",
+    "tmp": "^0.1.0"
   }
 }
