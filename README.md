@@ -16,6 +16,18 @@ Read asyncronously.
 
 Write asyncronously.
 
+#### ```fs.createWriteStream(filename, cb)```
+
+Write to a stream.
+
+#### ```fs.createReadStream(filename, cb)```
+
+Write to a stream.
+
+#### TODO
+
+Move all of the functions over from hyperdrive to the top constructor instance.
+
 ## License
 
 MIT

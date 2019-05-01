@@ -9,7 +9,7 @@
   "author": "Karissa McKelvey",
   "license": "MIT",
   "dependencies": {
-    "hyperdrive": "^10.0.0-rc3",
+    "hyperdrive": "github:karissa/hyperdrive#v10",
     "kappa-core": "^2.7.0",
     "kappa-view-kv": "^2.0.1",
     "memdb": "^1.3.1",
