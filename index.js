@@ -127,8 +127,6 @@ class KappaDrive {
     var proxy = duplexify()
     this._getLinks(filename, (err, links) => {
       if (err) proxy.emit('error', err)
-      // TODO: possible race condition with the indexes not catching up before
-      // the next write... need to call finishWrite afterbefore the writer ends
       var writer = this.drive.createWriteStream(filename)
       proxy.setWritable(writer)
 
