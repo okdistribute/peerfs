@@ -4,7 +4,17 @@ A multiwriter peer-to-peer filesystem.
 
 ## Usage
 
-See [test.js](test.js)
+See [test.js](test.js) for examples.
+
+#### TODO
+
+- [ ] Move all of the functions over from hyperdrive to the top constructor instance. (e.g., readdir, stat)
+- [ ] Improve performance and stability of index writes by using something othe
+  than JSON.
+- [ ] Allow resolveFork function to get access to the stat object of the file
+  on that write so that it can make a more intelligent display or make better
+decisions about the fork
+- [ ] Allow forks to be unresolved cc @substack
 
 ## API
 
@@ -35,15 +45,6 @@ Write to a stream.
 #### ```fs.createReadStream(filename, cb)```
 
 Read file from a stream.
-
-#### TODO
-
-- [ ] Move all of the functions over from hyperdrive to the top constructor instance. (e.g., readdir, stat)
-- [ ] Improve performance and stability of index writes by using something othe
-  than JSON.
-- [ ] Allow resolveFork function to get access to the stat object of the file
-  on that write so that it can make a more intelligent display or make better
-decisions about the fork
 
 ## License
 
