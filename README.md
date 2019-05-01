@@ -15,6 +15,7 @@ See [test.js](test.js) for examples.
   on that write so that it can make a more intelligent display or make better
 decisions about the fork
 - [ ] Allow forks to be unresolved cc @substack
+- [ ] When writing, in the link we should record the seq of the hyperdrive, and on `whoHasFile`, checkout to that seq if its not the latest: https://github.com/karissa/peerfs/blob/master/index.js#L105-L106
 
 ## API
 
