@@ -45,9 +45,9 @@ class KappaDrive {
       content = 'content'
     }
     debug('getting drive feed', metadata, content)
-    this.core.feed(metadata, (err, metadata) => {
+    this.core.writer(metadata, (err, metadata) => {
       if (err) return cb(err)
-      this.core.feed(content, (err, content) => {
+      this.core.writer(content, (err, content) => {
         if (err) return cb(err)
         debug('got feeds', metadata, content)
         var drive = hyperdrive(this._storage, {metadata, content})
@@ -153,7 +153,7 @@ class KappaDrive {
   }
 
   open (cb) {
-    this.core.feed('peerfs', (err, feed) => {
+    this.core.writer('peerfs', (err, feed) => {
       if (err) cb(err)
       this.local = feed
       this._getDrive('metadata', 'content', (err, drive) => {
