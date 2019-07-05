@@ -58,7 +58,19 @@ test('multiwriter: defaults to latest value', function (t) {
   function writeSecond (cb) {
     drive2.ready(() => {
       drive2.writeFile('/hello.txt', 'verden', function (err) {
+        drive2.readFile('/hello.txt', (err, data) => {
+          t.error(err)
+          cb()
+        })
+      })
+    })
+  }
+
+  function readSecond (cb) {
+    drive2.ready(() => {
+      drive2.readFile('/hello.txt', (err, data) => {
         t.error(err)
+        t.same(data.toString(), 'mundo')
         cb()
       })
     })
@@ -67,14 +79,15 @@ test('multiwriter: defaults to latest value', function (t) {
   function sync () {
     replicate(drive, drive2, (err) => {
       t.error(err)
-      writeSecond(() => {
-        replicate(drive, drive2, (err) => {
-          t.error(err)
-          drive.readFile('/hello.txt', function (err, data) {
+      readSecond(() => {
+        writeSecond(() => {
+          replicate(drive, drive2, (err) => {
             t.error(err)
-            // drive has the new changes
-            t.same(data.toString(), 'verden')
-            t.end()
+            drive.readFile('/hello.txt', function (err, data) {
+              t.error(err)
+              t.same(data.toString(), 'verden')
+              t.end()
+            })
           })
         })
       })
