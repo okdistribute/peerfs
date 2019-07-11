@@ -41,6 +41,7 @@ class KappaDrive {
 
   _getDrive (metadata, content, cb) {
     // HACK: if its OUR feed
+    // TODO: rewrite...
     if (metadata === 'metadata') {
       metadata = 'metadata'
       content = 'content'
@@ -73,7 +74,6 @@ class KappaDrive {
         var winner = this._resolveFork(values)
         // TODO: allow multiple winners
         var value = JSON.parse(winner.value)
-        console.log("Winner", value.metadata, value.content)
         this._getDrive(value.metadata, value.content, cb)
       })
     })

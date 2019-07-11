@@ -5,7 +5,7 @@ var tmpdir = require('tmp').dirSync
 var kappafs = require('./')
 var mkdirp = require('mkdirp')
 
-var tmp = function () {
+function tmp () {
   var dir = tmpdir().name
   mkdirp.sync(dir)
   return dir
@@ -81,7 +81,7 @@ test('multiwriter: defaults to latest value', function (t) {
       t.error(err)
       readSecond(() => {
         writeSecond(() => {
-          replicate(drive, drive2, (err) => {
+          replicate(drive2, drive, (err) => {
             t.error(err)
             drive.readFile('/hello.txt', function (err, data) {
               t.error(err)
