@@ -40,20 +40,29 @@ class KappaDrive {
   }
 
   _getDrive (metadata, content, cb) {
-    if (metadata === this.metadataKey) {
+    // HACK: if its OUR feed
+    if (metadata === 'metadata') {
       metadata = 'metadata'
       content = 'content'
-    }
-    debug('getting drive feed', metadata, content)
-    this.core.writer(metadata, (err, metadata) => {
-      if (err) return cb(err)
-      this.core.writer(content, (err, content) => {
+      debug('getting drive feed', metadata, content)
+      this.core.writer(metadata, (err, metadata) => {
         if (err) return cb(err)
-        debug('got feeds', metadata, content)
-        var drive = hyperdrive(this._storage, {metadata, content})
-        drive.ready(() => cb(null, drive))
+        this.core.writer(content, (err, content) => {
+          if (err) return cb(err)
+          debug('got feeds', metadata, content)
+          var drive = hyperdrive(this._storage, {metadata, content})
+          drive.ready(() => cb(null, drive))
+        })
       })
-    })
+    // Otherwise we're not a writer, we just want to read...
+    } else {
+      debug('getting drive feed', metadata, content)
+      metadata = this.core.feed(metadata)
+      content = this.core.feed(content)
+      debug('got feeds', metadata, content)
+      var drive = hyperdrive(this._storage, {metadata, content})
+      drive.ready(() => cb(null, drive))
+    }
   }
 
   _whoHasFile (filename, cb) {
@@ -64,6 +73,7 @@ class KappaDrive {
         var winner = this._resolveFork(values)
         // TODO: allow multiple winners
         var value = JSON.parse(winner.value)
+        console.log("Winner", value.metadata, value.content)
         this._getDrive(value.metadata, value.content, cb)
       })
     })
@@ -159,8 +169,6 @@ class KappaDrive {
       this._getDrive('metadata', 'content', (err, drive) => {
         if (err) return cb(err)
         this.drive = drive
-        this.metadataKey = drive.metadata.key.toString('hex')
-        this.contentKey = drive.content.key.toString('hex')
         this._open = true
         if (cb) cb()
       })
