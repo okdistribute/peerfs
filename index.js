@@ -5,6 +5,10 @@ var memdb = require('memdb')
 var hyperdrive = require('hyperdrive')
 var duplexify = require('duplexify')
 
+const STATE = 'peerfs'
+const METADATA = 'metadata'
+const CONTENT = 'content'
+
 function dumbMerge (values) {
   return values[0]
 }
@@ -46,15 +50,15 @@ class KappaDrive {
 
     if (metadata && content) {
       debug('got feeds', metadata, content)
-      var drive = hyperdrive(this._storage, {metadata, content})
+      var drive = hyperdrive(this._storage, { metadata, content })
       drive.ready(() => cb(null, drive))
     } else {
-      this.core.writer(metadata, (err, metadata) => {
+      this.core.writer(METADATA, (err, metadata) => {
         if (err) return cb(err)
-        this._feeds['metadata'] = metadata
+        this._feeds[METADATA] = metadata
 
-        this.core.writer(content, (err, content) => {
-          this._feeds['content'] = content
+        this.core.writer(CONTENT, (err, content) => {
+          this._feeds[CONTENT] = content
 
           if (err) return cb(err)
           debug('got feeds', metadata, content)
@@ -119,7 +123,7 @@ class KappaDrive {
     debug('writing finished', res)
 
     // TODO: ew JSON stringify is slow... lets use protobuf instead
-    this._feeds['peerfs'].append(JSON.stringify(res), cb)
+    this._feeds[STATE].append(JSON.stringify(res), cb)
   }
 
   writeFile (filename, content, cb) {
@@ -162,11 +166,11 @@ class KappaDrive {
   }
 
   open (cb) {
-    this.core.writer('peerfs', (err, feed) => {
+    this.core.writer(STATE, (err, feed) => {
       if (err) cb(err)
-      this._feeds['peerfs'] = feed
+      this._feeds[STATE] = feed
       this.local = feed
-      this._getDrive('metadata', 'content', (err, drive) => {
+      this._getDrive(METADATA, CONTENT, (err, drive) => {
         if (err) return cb(err)
         this.drive = drive
         this._open = true
