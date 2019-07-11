@@ -169,7 +169,6 @@ class KappaDrive {
     this.core.writer(STATE, (err, feed) => {
       if (err) cb(err)
       this._feeds[STATE] = feed
-      this.local = feed
       this._getDrive(METADATA, CONTENT, (err, drive) => {
         if (err) return cb(err)
         this.drive = drive
