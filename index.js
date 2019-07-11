@@ -17,6 +17,7 @@ class KappaDrive {
     this._storage = storage
     this._index = opts.index || memdb()
     this._resolveFork = opts.resolveFork || dumbMerge
+    this._feeds = {}
 
     this.kvidx = kv(this._index, function (msg, next) {
       var ops = []
@@ -40,29 +41,27 @@ class KappaDrive {
   }
 
   _getDrive (metadata, content, cb) {
-    // HACK: if its OUR feed
-    // TODO: rewrite...
-    if (metadata === 'metadata') {
-      metadata = 'metadata'
-      content = 'content'
-      debug('getting drive feed', metadata, content)
+    metadata = this._feeds[metadata] || this.core.feed(metadata)
+    content = this._feeds[content] || this.core.feed(content)
+
+    if (metadata && content) {
+      debug('got feeds', metadata, content)
+      var drive = hyperdrive(this._storage, {metadata, content})
+      drive.ready(() => cb(null, drive))
+    } else {
       this.core.writer(metadata, (err, metadata) => {
         if (err) return cb(err)
+        this._feeds['metadata'] = metadata
+
         this.core.writer(content, (err, content) => {
+          this._feeds['content'] = content
+
           if (err) return cb(err)
           debug('got feeds', metadata, content)
           var drive = hyperdrive(this._storage, {metadata, content})
           drive.ready(() => cb(null, drive))
         })
       })
-    // Otherwise we're not a writer, we just want to read...
-    } else {
-      debug('getting drive feed', metadata, content)
-      metadata = this.core.feed(metadata)
-      content = this.core.feed(content)
-      debug('got feeds', metadata, content)
-      var drive = hyperdrive(this._storage, {metadata, content})
-      drive.ready(() => cb(null, drive))
     }
   }
 
@@ -120,7 +119,7 @@ class KappaDrive {
     debug('writing finished', res)
 
     // TODO: ew JSON stringify is slow... lets use protobuf instead
-    this.local.append(JSON.stringify(res), cb)
+    this._feeds['peerfs'].append(JSON.stringify(res), cb)
   }
 
   writeFile (filename, content, cb) {
@@ -165,6 +164,7 @@ class KappaDrive {
   open (cb) {
     this.core.writer('peerfs', (err, feed) => {
       if (err) cb(err)
+      this._feeds['peerfs'] = feed
       this.local = feed
       this._getDrive('metadata', 'content', (err, drive) => {
         if (err) return cb(err)
