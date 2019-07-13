@@ -21,7 +21,7 @@ class KappaDrive {
     this._storage = storage
     this._index = opts.index || memdb()
     this._resolveFork = opts.resolveFork || dumbMerge
-    this._feeds = {}
+    this._feeds = this.core._logs._feeds
 
     this.kvidx = kv(this._index, function (msg, next) {
       var ops = []
@@ -45,8 +45,8 @@ class KappaDrive {
   }
 
   _getDrive (metadata, content, cb) {
-    metadata = this._feeds[metadata] || this.core.feed(metadata)
-    content = this._feeds[content] || this.core.feed(content)
+    metadata = this.core._logs._feeds[metadata] || this.core.feed(metadata)
+    content = this.core._logs._feeds[content] || this.core.feed(content)
 
     if (metadata && content) {
       debug('got feeds', metadata, content)
@@ -55,11 +55,7 @@ class KappaDrive {
     } else {
       this.core.writer(METADATA, (err, metadata) => {
         if (err) return cb(err)
-        this._feeds[METADATA] = metadata
-
         this.core.writer(CONTENT, (err, content) => {
-          this._feeds[CONTENT] = content
-
           if (err) return cb(err)
           debug('got feeds', metadata, content)
           var drive = hyperdrive(this._storage, {metadata, content})
@@ -71,7 +67,7 @@ class KappaDrive {
 
   _whoHasFile (filename, cb) {
     this.core.ready('kv', () => {
-      this.core.api.kv.get(filename, (err, values) => {
+      this.core.api.kv.get(filename, (err, msgs) => {
         if (err && !err.notFound) return cb(err)
         if (!values || !values.length) return cb(null, this.drive)
         var winner = this._resolveFork(values)
@@ -117,13 +113,13 @@ class KappaDrive {
 
     // TODO: we probably should record the seq of the metadata/content as well
     // and perform a checkout to that hyperdrive seq on reads
-    res.metadata = this.drive.metadata.key.toString('hex')
-    res.content = this.drive.content.key.toString('hex')
+    res.metadata = this.core._logs._feeds[METADATA].key.toString('hex')
+    res.content = this.core._logs._feeds[CONTENT].key.toString('hex')
 
     debug('writing finished', res)
 
     // TODO: ew JSON stringify is slow... lets use protobuf instead
-    this._feeds[STATE].append(JSON.stringify(res), cb)
+    this.local.append(JSON.stringify(res), cb)
   }
 
   writeFile (filename, content, cb) {
@@ -168,7 +164,7 @@ class KappaDrive {
   open (cb) {
     this.core.writer(STATE, (err, feed) => {
       if (err) cb(err)
-      this._feeds[STATE] = feed
+      this.local = feed
       this._getDrive(METADATA, CONTENT, (err, drive) => {
         if (err) return cb(err)
         this.drive = drive

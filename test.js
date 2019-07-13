@@ -16,10 +16,10 @@ test('basic: write and read latest value', function (t) {
 
   drive.ready(() => {
     drive.writeFile('/hello.txt', 'world', function (err) {
-      t.error(err)
+      t.error(err, 'writes hello world')
       drive.readFile('/hello.txt', function (err, content) {
         t.error(err)
-        t.same(content.toString(), 'world')
+        t.same(content.toString(), 'world', 'reads hello world')
         t.end()
       })
     })
@@ -47,9 +47,9 @@ test('multiwriter: defaults to latest value', function (t) {
 
   drive.ready(() => {
     drive.writeFile('/hello.txt', 'world', function (err) {
-      t.error(err)
+      t.error(err, 'writes world')
       drive.writeFile('/hello.txt', 'mundo', function (err) {
-        t.error(err)
+        t.error(err, 'writes mundo')
         sync()
       })
     })
@@ -59,7 +59,7 @@ test('multiwriter: defaults to latest value', function (t) {
     drive2.ready(() => {
       drive2.writeFile('/hello.txt', 'verden', function (err) {
         drive2.readFile('/hello.txt', (err, data) => {
-          t.error(err)
+          t.error(err, 'writes verden')
           cb()
         })
       })
@@ -70,7 +70,7 @@ test('multiwriter: defaults to latest value', function (t) {
     drive2.ready(() => {
       drive2.readFile('/hello.txt', (err, data) => {
         t.error(err)
-        t.same(data.toString(), 'mundo')
+        t.same(data.toString(), 'mundo', 'reads mundo')
         cb()
       })
     })
@@ -78,14 +78,14 @@ test('multiwriter: defaults to latest value', function (t) {
 
   function sync () {
     replicate(drive, drive2, (err) => {
-      t.error(err)
+      t.error(err, 'replicated')
       readSecond(() => {
         writeSecond(() => {
           replicate(drive2, drive, (err) => {
-            t.error(err)
+            t.error(err, 'replicated')
             drive.readFile('/hello.txt', function (err, data) {
               t.error(err)
-              t.same(data.toString(), 'verden')
+              t.same(data.toString(), 'verden', 'reads verden')
               t.end()
             })
           })
