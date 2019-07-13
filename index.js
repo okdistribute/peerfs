@@ -45,8 +45,8 @@ class KappaDrive {
   }
 
   _getDrive (metadata, content, cb) {
-    metadata = this.core._logs._feeds[metadata] || this.core.feed(metadata)
-    content = this.core._logs._feeds[content] || this.core.feed(content)
+    metadata = this.core.feed(metadata)
+    content = this.core.feed(content)
 
     if (metadata && content) {
       debug('got feeds', metadata, content)
@@ -113,8 +113,8 @@ class KappaDrive {
 
     // TODO: we probably should record the seq of the metadata/content as well
     // and perform a checkout to that hyperdrive seq on reads
-    res.metadata = this.core._logs._feeds[METADATA].key.toString('hex')
-    res.content = this.core._logs._feeds[CONTENT].key.toString('hex')
+    res.metadata = this.core.feed(METADATA).key.toString('hex')
+    res.content = this.core.feed(CONTENT).key.toString('hex')
 
     debug('writing finished', res)
 
