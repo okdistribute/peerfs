@@ -1,17 +1,32 @@
-var rimraf = require('rimraf')
-var test = require('tape')
-var pump = require('pump')
-var tmpdir = require('tmp').dirSync
-var kappafs = require('./')
-var mkdirp = require('mkdirp')
+const rimraf = require('rimraf')
+const test = require('tape')
+const pump = require('pump')
+const tmpdir = require('tmp').dirSync
+const kappafs = require('./')
+const mkdirp = require('mkdirp')
 
-var tmp = function () {
+const tmp = () => {
   var dir = tmpdir().name
   mkdirp.sync(dir)
   return dir
 }
 
 test('basic: write and read latest value', function (t) {
+  var drive = kappafs(tmp())
+
+  drive.ready(() => {
+    drive.writeFile('/hello.txt', 'world', function (err) {
+      t.error(err)
+      drive.readFile('/hello.txt', function (err, content) {
+        t.error(err)
+        t.same(content.toString(), 'world')
+        t.end()
+      })
+    })
+  })
+})
+
+test('basic: use custom keypair', function (t) {
   var drive = kappafs(tmp())
 
   drive.ready(() => {
@@ -56,25 +71,27 @@ test('multiwriter: defaults to latest value', function (t) {
   })
 
   function writeSecond (cb) {
-    drive2.ready(() => {
       drive2.writeFile('/hello.txt', 'verden', function (err) {
         t.error(err)
         cb()
       })
-    })
   }
 
   function sync () {
-    replicate(drive, drive2, (err) => {
-      t.error(err)
-      writeSecond(() => {
+    drive2.ready(() => {
+      drive2.writeFile('test.txt', 'testing', function (err) {
         replicate(drive, drive2, (err) => {
           t.error(err)
-          drive.readFile('/hello.txt', function (err, data) {
-            t.error(err)
-            // drive has the new changes
-            t.same(data.toString(), 'verden')
-            t.end()
+          writeSecond(() => {
+            replicate(drive, drive2, (err) => {
+              t.error(err)
+              drive.readFile('/hello.txt', function (err, data) {
+                t.error(err)
+                // drive has the new changes
+                t.same(data.toString(), 'verden')
+                t.end()
+              })
+            })
           })
         })
       })
