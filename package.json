@@ -1,10 +1,10 @@
 {
-  "name": "peerfs",
+  "name": "kappa-drive",
   "version": "1.0.0",
-  "description": "multiwriter peer to peer filesystem",
+  "description": "a multiwriter peer to peer filesystem",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "DEBUG=kappa-drive istanbul cover tape test/**/*.test.js | tap-spec"
   },
   "author": "Karissa McKelvey",
   "license": "MIT",
@@ -12,17 +12,21 @@
     "corestore": "github:coboxcoop/corestore#061e782483cbd172d957059f53dfe1530d1ae9f1",
     "hypercore-crypto": "^1.0.0",
     "hyperdrive": "github:mafintosh/hyperdrive#v10",
-    "multifeed": "github:coboxcoop/multifeed#eed1af96de4f12f550d9225e3960ac3ca45b6e87",
     "kappa-core": "^4.0.0",
     "kappa-view-kv": "^2.0.1",
     "memdb": "^1.3.1",
     "mountable-hypertrie": "^0.10.3",
-    "pump": "^3.0.0",
-    "random-access-memory": "^3.1.1",
-    "tape": "^4.10.1"
+    "multifeed": "github:coboxcoop/multifeed#eed1af96de4f12f550d9225e3960ac3ca45b6e87",
+    "random-access-memory": "^3.1.1"
   },
   "devDependencies": {
+    "istanbul": "^0.4.5",
+    "mkdirp": "^0.5.1",
+    "pump": "^3.0.0",
     "rimraf": "^2.6.3",
+    "tap-spec": "^5.0.0",
+    "tape": "^4.10.1",
+    "tape-plus": "^1.0.0",
     "tmp": "^0.1.0"
   }
 }

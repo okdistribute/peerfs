@@ -1,5 +1,5 @@
 const kappa = require('kappa-core')
-const debug = require('debug')('kappa-fs')
+const debug = require('debug')('kappa-drive')
 const KV = require('kappa-view-kv')
 const memdb = require('memdb')
 const corestore = require('corestore')
@@ -7,7 +7,6 @@ const MountableHypertrie = require('mountable-hypertrie')
 const hyperdrive = require('hyperdrive')
 const duplexify = require('duplexify')
 const ram = require('random-access-memory')
-const raf = require('random-access-file')
 
 const STATE = 'state'
 const METADATA = 'metadata'
@@ -56,16 +55,14 @@ class KappaDrive {
   _openDrive (metadata, content, cb) {
     var store = corestore(this.storage, { defaultCore: metadata })
 
-    var db = new MountableHypertrie(store, metadata.key, {
-      feed: metadata,
-      sparse: this.sparseMetadata
-    })
-
     var drive = hyperdrive(ram, metadata.key, {
       corestore,
       metadata,
       _content: content,
-      _db: db
+      _db: new MountableHypertrie(store, metadata.key, {
+        feed: metadata,
+        sparse: this.sparseMetadata
+      })
     })
 
     drive.ready(() => cb(null, drive))
