@@ -1,10 +1,14 @@
+sudo: false
 language: node_js
 node_js:
   - '8'
   - '10'
+before_install:
+  - npm install -g npm@latest
+  - sudo apt-get -qq update
+script:
+  - npm test
 os:
   - windows
   - osx
   - linux
-notifications:
-  email: false
