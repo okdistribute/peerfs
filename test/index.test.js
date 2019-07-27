@@ -121,19 +121,21 @@ describe('multiwriter', (context) => {
 
 // TODO: figure out why this resolves incorrectly when in memory
 describe('conflict', (context) => {
-  var storage
+  var storage1, storage2
 
   context.beforeEach((c) => {
-    storage = tmp()
+    storage1 = tmp()
+    storage2 = tmp()
   })
 
   context.afterEach((c) => {
-    cleanup(storage)
+    cleanup(storage1)
+    cleanup(storage2)
   })
 
   context('fork', (assert, next) => {
-    var drive = KappaDrive(storage)
-    var drive2 = KappaDrive(storage)
+    var drive = KappaDrive(storage1)
+    var drive2 = KappaDrive(storage2)
 
     drive.ready(() => {
       drive2.ready(() => {
