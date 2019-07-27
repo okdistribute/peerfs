@@ -1,32 +1,46 @@
-var kappa = require('kappa-core')
-var debug = require('debug')('kappa-fs')
-var kv = require('kappa-view-kv')
-var memdb = require('memdb')
-var hyperdrive = require('hyperdrive')
-var duplexify = require('duplexify')
+const kappa = require('kappa-core')
+const debug = require('debug')('kappa-fs')
+const KV = require('kappa-view-kv')
+const memdb = require('memdb')
+const corestore = require('corestore')
+const MountableHypertrie = require('mountable-hypertrie')
+const hyperdrive = require('hyperdrive')
+const duplexify = require('duplexify')
+const ram = require('random-access-memory')
+const raf = require('random-access-file')
+
+const STATE = 'state'
+const METADATA = 'metadata'
+const CONTENT = 'content'
 
 function dumbMerge (values) {
   return values[0]
 }
 
+module.exports = (storage, key, opts) => new KappaDrive(storage, key, opts)
+
 class KappaDrive {
-  constructor (storage, opts) {
+  constructor (storage, key, opts) {
+    if (!Buffer.isBuffer(key) && !opts) {
+      opts = key
+      key = null
+    }
     if (!opts) opts = {}
-    // TODO: encode messages for robustness
-    this.core = kappa(storage)
+
     this._storage = storage
     this._index = opts.index || memdb()
     this._resolveFork = opts.resolveFork || dumbMerge
+    this._opts = opts
 
-    this.kvidx = kv(this._index, function (msg, next) {
+    this.core = kappa(storage, { key })
+
+    this.kvidx = KV(this._index, function (msg, next) {
       var ops = []
       var msgId = msg.key + '@' + msg.seq
-      // TODO: ew, json?
-      try {
-        var value = JSON.parse(msg.value)
-      } catch (err) {
-        return next()
-      }
+
+      try { var value = JSON.parse(msg.value.toString()) }
+      catch (err) { return next() }
+
       ops.push({
         key: value.filename,
         id: msgId,
@@ -39,32 +53,35 @@ class KappaDrive {
     this.core.use('kv', this.kvidx)
   }
 
-  _getDrive (metadata, content, cb) {
-    if (metadata === this.metadataKey) {
-      metadata = 'metadata'
-      content = 'content'
-    }
-    debug('getting drive feed', metadata, content)
-    this.core.feed(metadata, (err, metadata) => {
-      if (err) return cb(err)
-      this.core.feed(content, (err, content) => {
-        if (err) return cb(err)
-        debug('got feeds', metadata, content)
-        var drive = hyperdrive(this._storage, {metadata, content})
-        drive.ready(() => cb(null, drive))
-      })
+  _openDrive (metadata, content, cb) {
+    var store = corestore(this.storage, { defaultCore: metadata })
+
+    var db = new MountableHypertrie(store, metadata.key, {
+      feed: metadata,
+      sparse: this.sparseMetadata
     })
+
+    var drive = hyperdrive(ram, metadata.key, {
+      corestore,
+      metadata,
+      _content: content,
+      _db: db
+    })
+
+    drive.ready(() => cb(null, drive))
   }
 
   _whoHasFile (filename, cb) {
     this.core.ready('kv', () => {
-      this.core.api.kv.get(filename, (err, values) => {
+      this.core.api.kv.get(filename, (err, msgs = []) => {
         if (err && !err.notFound) return cb(err)
+        var values = msgs.map(msg => JSON.parse(msg.value.toString()))
         if (!values || !values.length) return cb(null, this.drive)
         var winner = this._resolveFork(values)
-        // TODO: allow multiple winners
-        var value = JSON.parse(winner.value)
-        this._getDrive(value.metadata, value.content, cb)
+        var metadata = this.core.feed(winner.metadata)
+        var content = this.core.feed(winner.content)
+        if (!metadata || !content) return cb(new Error('missing drive'))
+        this._openDrive(metadata, content, cb)
       })
     })
   }
@@ -88,35 +105,37 @@ class KappaDrive {
 
   _getLinks (filename, cb) {
     this.core.ready('kv', () => {
-      this.core.api.kv.get(filename, (err, values) => {
+      this.core.api.kv.get(filename, (err, msgs) => {
         if (err && !err.notFound) return cb(err)
-        var links = values ? values.map((v) => v.key + '@' + v.seq) : []
+        var links = msgs ? msgs.map((v) => v.key + '@' + v.seq) : []
         return cb(null, links)
       })
     })
   }
 
   _finishWrite (filename, links, cb) {
-    var res = {
-      filename,
-      links
-    }
-
     // TODO: we probably should record the seq of the metadata/content as well
     // and perform a checkout to that hyperdrive seq on reads
-    res.metadata = this.drive.metadata.key.toString('hex')
-    res.content = this.drive.content.key.toString('hex')
+    let metadata = this.metadata.key.toString('hex')
+    let content = this.content.key.toString('hex')
+
+    var res = {
+      filename,
+      links,
+      metadata,
+      content,
+    }
 
     debug('writing finished', res)
 
     // TODO: ew JSON stringify is slow... lets use protobuf instead
-    this.local.append(JSON.stringify(res), cb)
+    this.state.append(JSON.stringify(res), cb)
   }
 
-  writeFile (filename, content, cb) {
+  writeFile (filename, data, cb) {
     this._getLinks(filename, (err, links) => {
       if (err) return cb(err)
-      this.drive.writeFile(filename, content, (err) => {
+      this.drive.writeFile(filename, data, (err) => {
         if (err) return cb(err)
         this._finishWrite(filename, links, cb)
       })
@@ -153,16 +172,22 @@ class KappaDrive {
   }
 
   open (cb) {
-    this.core.feed('peerfs', (err, feed) => {
-      if (err) cb(err)
-      this.local = feed
-      this._getDrive('metadata', 'content', (err, drive) => {
+    this.core.writer(STATE, (err, state) => {
+      if (err) return cb(err)
+      this.state = state
+      this.core.writer(METADATA, (err, metadata) => {
         if (err) return cb(err)
-        this.drive = drive
-        this.metadataKey = drive.metadata.key.toString('hex')
-        this.contentKey = drive.content.key.toString('hex')
-        this._open = true
-        if (cb) cb()
+        this.metadata = metadata
+        this.core.writer(CONTENT, (err, content) => {
+          if (err) return cb(err)
+          this.content = content
+          this._openDrive(metadata, content, (err, drive) => {
+            if (err) return cb(err)
+            this.drive = drive
+            this._open = true
+            if (cb) cb()
+          })
+        })
       })
     })
   }
@@ -175,9 +200,4 @@ class KappaDrive {
   replicate () {
     return this.core.replicate()
   }
-}
-
-module.exports = function (storage, opts) {
-  // what do we do with the key??
-  return new KappaDrive(storage, opts)
 }
