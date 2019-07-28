@@ -114,14 +114,25 @@ class KappaDrive {
     })
   }
 
-  readdir (callback) {
+  readdir (name, opts, cb) {
+    if (typeof opts === 'function') return this.readdir(name, null, opts)
+    
+    // name = normalizePath(name)
+    if (name === '/') {
+      return this._readdirRoot(opts, cb)
+    }
+
+  }
+  
+  _readdirRoot (opts, cb) {
+    // sanitizeDirs()
     var files = []
     var fileStream = this.core.api.kv.createReadStream()
     fileStream.on('data', (data) => {
       files.push(data.key)
     })
     fileStream.on('end', () => {
-      callback(null, files)
+      cb(null, files)
     })
   }
 
