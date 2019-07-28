@@ -56,6 +56,15 @@ test('basic: writeStream and readStream', function (t) {
   })
 })
 
+test('basic: give keys', function (t) {
+  var drive = kappafs(tmp())
+  drive.ready(() => {
+    t.ok(Buffer.isBuffer(drive.key), 'drive.key returns a buffer')
+    t.ok(Buffer.isBuffer(drive.discoveryKey), 'drive.discoveryKey returns a buffer')
+    t.end()
+  })
+})
+
 test('multiwriter: defaults to latest value', function (t) {
   var drive = kappafs(tmp())
   var drive2 = kappafs(tmp())
