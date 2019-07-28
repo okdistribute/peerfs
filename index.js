@@ -192,6 +192,14 @@ class KappaDrive {
     })
   }
 
+  get key () {
+    return this.core._logs._fake.key
+  }
+
+  get discoveryKey () {
+    return this.core._logs._fake.discoveryKey
+  }
+  
   ready (cb) {
     if (this._open) return cb()
     this.open(cb)
