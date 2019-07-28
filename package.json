@@ -4,7 +4,7 @@
   "description": "a multiwriter peer to peer filesystem",
   "main": "index.js",
   "scripts": {
-    "test": "DEBUG=kappa-drive istanbul cover tape test/**/*.test.js | tap-spec"
+    "test": "istanbul cover tape test/**/*.test.js | tap-spec"
   },
   "author": "Karissa McKelvey",
   "license": "MIT",

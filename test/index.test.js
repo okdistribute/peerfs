@@ -192,7 +192,7 @@ describe('read access', (context) => {
 
 
 describe('encryption', (context) => {
-  context('write to drive using a custom keypair', (assert, next) => {
+  context('sign drive using a custom keypair', (assert, next) => {
     var accessKey = crypto.randomBytes(32)
     var keyPair = crypto.keyPair()
 
