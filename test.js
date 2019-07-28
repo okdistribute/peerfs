@@ -56,6 +56,22 @@ test('basic: writeStream and readStream', function (t) {
   })
 })
 
+test('basic: exists', function (assert) {
+  var drive = kappafs(tmp())
+  drive.ready(() => {
+    drive.exists('/hello.txt', function (bool) {
+      assert.notOk(bool, 'no file yet')
+      drive.writeFile('/hello.txt', 'world', function (err) {
+        assert.error(err)
+        drive.exists('/hello.txt', function (bool) {
+          assert.ok(bool, 'found file')
+          assert.end()
+        })
+      })
+    })
+  })
+})
+
 test('multiwriter: defaults to latest value', function (t) {
   var drive = kappafs(tmp())
   var drive2 = kappafs(tmp())
@@ -71,10 +87,10 @@ test('multiwriter: defaults to latest value', function (t) {
   })
 
   function writeSecond (cb) {
-      drive2.writeFile('/hello.txt', 'verden', function (err) {
-        t.error(err)
-        cb()
-      })
+    drive2.writeFile('/hello.txt', 'verden', function (err) {
+      t.error(err)
+      cb()
+    })
   }
 
   function sync () {
