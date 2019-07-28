@@ -9,14 +9,14 @@
   "author": "Karissa McKelvey",
   "license": "MIT",
   "dependencies": {
-    "corestore": "github:coboxcoop/corestore#061e782483cbd172d957059f53dfe1530d1ae9f1",
+    "corestore": "github:coboxcoop/corestore#default-core-in-opts",
     "hypercore-crypto": "^1.0.0",
     "hyperdrive": "github:mafintosh/hyperdrive#v10",
     "kappa-core": "^4.0.0",
     "kappa-view-kv": "^2.0.1",
     "memdb": "^1.3.1",
     "mountable-hypertrie": "^0.10.3",
-    "multifeed": "github:coboxcoop/multifeed#eed1af96de4f12f550d9225e3960ac3ca45b6e87",
+    "multifeed": "github:coboxcoop/multifeed#enable-custom-keypair-for-feeds",
     "random-access-memory": "^3.1.1"
   },
   "devDependencies": {

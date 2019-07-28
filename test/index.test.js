@@ -1,11 +1,13 @@
 const { describe } = require('tape-plus')
 const ram = require('random-access-memory')
+const crypto = require('hypercore-crypto')
 
 const KappaDrive = require('../')
 
 const replicate = require('./lib/replicate')
 const tmp = require('./lib/tmp')
 const cleanup = require('./lib/cleanup')
+const uniq = require('./lib/uniq')
 
 describe('basic', (context) => {
   context('write and read latest value', (assert, next) => {
@@ -171,5 +173,40 @@ describe('conflict', (context) => {
         })
       })
     }
+  })
+})
+
+describe('read access', (context) => {
+  context('accepts a top-level key for replication' , (assert, next) => {
+    var accessKey = crypto.randomBytes(32)
+
+    var drive = KappaDrive(ram, accessKey)
+
+    drive.ready(() => {
+      assert.same(drive.key, accessKey)
+      assert.same(drive.core._logs._fake.key, accessKey)
+      next()
+    })
+  })
+})
+
+
+describe('encryption', (context) => {
+  context('write to drive using a custom keypair', (assert, next) => {
+    var accessKey = crypto.randomBytes(32)
+    var keyPair = crypto.keyPair()
+
+    var drive = KappaDrive(ram, {
+      protocolEncryptionKey: accessKey,
+      key: keyPair.publicKey,
+      secretKey: keyPair.secretKey
+    })
+
+    drive.ready(() => {
+      var keys = uniq([drive.state.key, drive.metadata.key, drive.content.key])
+      assert.same(keys.length, 1)
+      assert.same(keys[0], keyPair.publicKey)
+      next()
+    })
   })
 })
