@@ -5,10 +5,8 @@ node_js:
   - '10'
 before_install:
   - npm install -g npm@latest
-  - sudo apt-get -qq update
 script:
   - npm test
 os:
-  - windows
   - osx
   - linux
