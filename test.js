@@ -56,6 +56,22 @@ test('basic: writeStream and readStream', function (t) {
   })
 })
 
+test('basic: readdir', function (t) {
+  var drive = kappafs(tmp())
+  drive.ready(() => {
+    drive.writeFile('/hello.txt', 'world', function (err) {
+      t.error(err)
+      drive.writeFile('/moose.txt', 'antlers', (err) => {      
+        drive.readdir((err, files) => {
+          t.ok(files.indexOf('/hello.txt' > -1), 'First file returned')
+          t.ok(files.indexOf('/moose.txt' > -1), 'Second file returned')
+          t.end()
+        })
+      })
+    })
+  })
+})
+
 test('multiwriter: defaults to latest value', function (t) {
   var drive = kappafs(tmp())
   var drive2 = kappafs(tmp())
