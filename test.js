@@ -62,9 +62,25 @@ test('basic: exists', function (assert) {
     drive.exists('/hello.txt', function (bool) {
       assert.notOk(bool, 'no file yet')
       drive.writeFile('/hello.txt', 'world', function (err) {
-        assert.error(err)
+        assert.error(err, 'no error')
         drive.exists('/hello.txt', function (bool) {
           assert.ok(bool, 'found file')
+          assert.end()
+        })
+      })
+    })
+  })
+})
+
+test('basic: truncate', function (assert) {
+  var drive = kappafs(tmp())
+  drive.ready(() => {
+    drive.writeFile('/hello.txt', 'world', (err) => {
+      assert.error(err, 'no error')
+      drive.truncate('/hello.txt', 1, (err) => {
+        assert.error(err, 'no error')
+        drive.readFile('/hello.txt', (err, data) => {
+          assert.deepEqual(Buffer.from('w'), data, 'truncated file')
           assert.end()
         })
       })

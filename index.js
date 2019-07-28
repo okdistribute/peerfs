@@ -109,6 +109,13 @@ class KappaDrive {
     })
   }
 
+  truncate (filename, size, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      if (err) return cb(err)
+      drive.truncate(filename, size, cb)
+    })
+  }
+
   _getLinks (filename, cb) {
     this.core.ready('kv', () => {
       this.core.api.kv.get(filename, (err, msgs) => {
