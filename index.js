@@ -114,6 +114,17 @@ class KappaDrive {
     })
   }
 
+  readdir (callback) {
+    var files = []
+    var fileStream = this.core.api.kv.createReadStream()
+    fileStream.on('data', (data) => {
+      files.push(data.key)
+    })
+    fileStream.on('end', () => {
+      callback(null, files)
+    })
+  }
+
   _getLinks (filename, cb) {
     this.core.ready('kv', () => {
       this.core.api.kv.get(filename, (err, msgs) => {
