@@ -26,21 +26,6 @@ test('basic: write and read latest value', function (t) {
   })
 })
 
-test('basic: use custom keypair', function (t) {
-  var drive = kappafs(tmp())
-
-  drive.ready(() => {
-    drive.writeFile('/hello.txt', 'world', function (err) {
-      t.error(err)
-      drive.readFile('/hello.txt', function (err, content) {
-        t.error(err)
-        t.same(content.toString(), 'world')
-        t.end()
-      })
-    })
-  })
-})
-
 test('basic: writeStream and readStream', function (t) {
   var drive = kappafs(tmp())
   drive.ready(() => {
