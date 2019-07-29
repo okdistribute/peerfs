@@ -86,6 +86,12 @@ class KappaDrive {
     })
   }
 
+  exists (filename, opts, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      drive.exists(filename, opts, cb)
+    })
+  }
+
   createReadStream (filename) {
     var proxy = duplexify()
     this._whoHasFile(filename, (err, drive) => {
@@ -100,6 +106,13 @@ class KappaDrive {
     this._whoHasFile(filename, (err, drive) => {
       if (err) return cb(err)
       drive.readFile(filename, opts, cb)
+    })
+  }
+
+  truncate (filename, size, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      if (err) return cb(err)
+      drive.truncate(filename, size, cb)
     })
   }
 
