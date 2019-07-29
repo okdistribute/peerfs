@@ -39,6 +39,40 @@ describe('basic', (context) => {
       })
     })
   })
+
+  context('basic: exists', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.exists('/hello.txt', function (bool) {
+        assert.notOk(bool, 'no file yet')
+        drive.writeFile('/hello.txt', 'world', function (err) {
+          assert.error(err, 'no error')
+          drive.exists('/hello.txt', function (bool) {
+            assert.ok(bool, 'found file')
+            next()
+          })
+        })
+      })
+    })
+  })
+
+  context('basic: truncate', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/hello.txt', 'world', (err) => {
+        assert.error(err, 'no error')
+        drive.truncate('/hello.txt', 1, (err) => {
+          assert.error(err, 'no error')
+          drive.readFile('/hello.txt', (err, data) => {
+            assert.deepEqual(Buffer.from('w'), data, 'truncated file')
+            next()
+          })
+        })
+      })
+    })
+  })
+
+
 })
 
 describe('multiwriter', (context) => {
