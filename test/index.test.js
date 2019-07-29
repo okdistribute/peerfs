@@ -72,7 +72,14 @@ describe('basic', (context) => {
     })
   })
 
-
+  context('basic: give keys', function (assert, next) {
+    var drive = kappafs(tmp())
+    drive.ready(() => {
+      assert.ok(Buffer.isBuffer(drive.key), 'drive.key returns a buffer')
+      assert.ok(Buffer.isBuffer(drive.discoveryKey), 'drive.discoveryKey returns a buffer')
+      next()
+    })
+  })
 })
 
 describe('multiwriter', (context) => {
