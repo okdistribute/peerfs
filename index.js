@@ -1,5 +1,5 @@
 const kappa = require('kappa-core')
-const debug = require('debug')('kappa-fs')
+const debug = require('debug')('kappa-drive')
 const KV = require('kappa-view-kv')
 const memdb = require('memdb')
 const corestore = require('corestore')
@@ -7,7 +7,6 @@ const MountableHypertrie = require('mountable-hypertrie')
 const hyperdrive = require('hyperdrive')
 const duplexify = require('duplexify')
 const ram = require('random-access-memory')
-const raf = require('random-access-file')
 
 const STATE = 'state'
 const METADATA = 'metadata'
@@ -27,12 +26,14 @@ class KappaDrive {
     }
     if (!opts) opts = {}
 
+    this.key = key
+    this._id = opts._id || Math.floor(Math.random() * 1000).toString(16)
     this._storage = storage
     this._index = opts.index || memdb()
     this._resolveFork = opts.resolveFork || dumbMerge
     this._opts = opts
 
-    this.core = kappa(storage, { key })
+    this.core = kappa(storage, Object.assign({ key }, this._opts))
 
     this.kvidx = KV(this._index, function (msg, next) {
       var ops = []
@@ -56,16 +57,14 @@ class KappaDrive {
   _openDrive (metadata, content, cb) {
     var store = corestore(this.storage, { defaultCore: metadata })
 
-    var db = new MountableHypertrie(store, metadata.key, {
-      feed: metadata,
-      sparse: this.sparseMetadata
-    })
-
     var drive = hyperdrive(ram, metadata.key, {
       corestore,
       metadata,
       _content: content,
-      _db: db
+      _db: new MountableHypertrie(store, metadata.key, {
+        feed: metadata,
+        sparse: this.sparseMetadata
+      })
     })
 
     drive.ready(() => cb(null, drive))
@@ -139,7 +138,7 @@ class KappaDrive {
       content,
     }
 
-    debug('writing finished', res)
+    debug(`${this._id} [WRITE] writing latest file system state\n${JSON.stringify(res)}`)
 
     // TODO: ew JSON stringify is slow... lets use protobuf instead
     this.state.append(JSON.stringify(res), cb)
@@ -185,19 +184,22 @@ class KappaDrive {
   }
 
   open (cb) {
+    var self = this
+
     this.core.writer(STATE, (err, state) => {
       if (err) return cb(err)
-      this.state = state
-      this.core.writer(METADATA, (err, metadata) => {
+      self.state = state
+      self.core.writer(METADATA, (err, metadata) => {
         if (err) return cb(err)
-        this.metadata = metadata
-        this.core.writer(CONTENT, (err, content) => {
+        self.metadata = metadata
+        self.core.writer(CONTENT, (err, content) => {
           if (err) return cb(err)
-          this.content = content
-          this._openDrive(metadata, content, (err, drive) => {
+          self.content = content
+          self._openDrive(metadata, content, (err, drive) => {
+            debug(`${self._id} [INIT] local keys:\n${[metadata, content, state].map((f) => f.key.toString('hex')).join('\n')}`)
             if (err) return cb(err)
-            this.drive = drive
-            this._open = true
+            self.drive = drive
+            self._open = true
             if (cb) cb()
           })
         })
