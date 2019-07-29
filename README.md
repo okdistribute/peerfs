@@ -1,6 +1,7 @@
-# peerfs
+# DEPRECATED
+**Notice: this module is now not maintained. Please see [coboxcoop/peerfs](https://github.com/coboxcoop/peerfs/) for the latest implementation**
 
-A multiwriter peer-to-peer filesystem.
+
 
 ## Usage
 
