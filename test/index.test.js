@@ -221,11 +221,13 @@ describe('read access', (context) => {
   context('accepts a top-level key for replication' , (assert, next) => {
     var accessKey = crypto.randomBytes(32)
 
-    var drive = KappaDrive(ram, accessKey)
+    var drive = KappaDrive(ram, { protocolEncryptionKey: accessKey })
 
     drive.ready(() => {
       assert.same(drive.key, accessKey)
       assert.same(drive.core._logs._fake.key, accessKey)
+      var keys = [drive.state.key, drive.metadata.key, drive.content.key]
+      keys.forEach((key) => assert.notEqual(key, accessKey))
       next()
     })
   })
