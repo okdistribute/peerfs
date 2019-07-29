@@ -26,7 +26,6 @@ class KappaDrive {
     }
     if (!opts) opts = {}
 
-    this.key = key
     this._id = opts._id || Math.floor(Math.random() * 1000).toString(16)
     this._storage = storage
     this._index = opts.index || memdb()
