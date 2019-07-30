@@ -95,7 +95,11 @@ describe('basic', (context) => {
           drive.readdir('/', (err, files) => {
             assert.notOk(err)
             assert.deepEqual(files.sort, filesToWrite.sort, 'files are the same')
-            next()
+            drive.readdir('/stuff', (err, files) => {
+              assert.error(err)
+              assert.equal(filesToWrite[0], files[0], 'can specify directory')
+              next()
+            })
           })
         })
       })
