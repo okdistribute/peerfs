@@ -124,9 +124,11 @@ class KappaDrive {
       if (err) return cb(err)
       if (name === '/') return cb(null, fullDirList)
       
-      const namePath = name.split(path.sep)
+      // const namePath = name.split(path.sep)
       cb(null, fullDirList.filter((filePath) => {
-        return filePath.split(path.sep).slice(0, namePath.length) === namePath
+
+        console.log('data', filePath)
+        return (filePath.slice(0, name.length) === name)
       }))
     })
   }
@@ -134,16 +136,17 @@ class KappaDrive {
   _readdirRoot (opts, cb) {
     var self = this
     // sanitizeDirs()
-    var fileStream = this.core.api.kv.createReadStream()
-    var throughStream = fileStream.pipe(through.obj(function (chunk, enc, next) {
-      self.exists(chunk.key, opts, (exists) => {
-        if (exists) this.push(chunk.key)
-        next()
+    this.core.ready('kv', () => {
+      var fileStream = this.core.api.kv.createReadStream()
+      var throughStream = fileStream.pipe(through.obj(function (chunk, enc, next) {
+        self.exists(chunk.key, opts, (exists) => {
+          if (exists) this.push({ filename: chunk.key })
+          next()
+        })
+      }))
+      collect(throughStream, (err, data) => {
+        cb(err, data.map(d => d.filename))
       })
-    }))
-    collect(throughStream, (err, data) => {
-      console.log(data)
-      cb(err, data)
     })
   }
 

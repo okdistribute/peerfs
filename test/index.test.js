@@ -82,16 +82,19 @@ describe('basic', (context) => {
   })
 
   context('basic: readdir', function (assert, next) {
+    const filesToWrite = [
+      '/stuff/things/ape.txt',
+      '/badger_number_one.txt' 
+    ]
     var drive = KappaDrive(tmp())
     drive.ready(() => {
-      drive.writeFile('/stuff/things/ape.txt', 'tree', (err) => {
+      drive.writeFile(filesToWrite[0], 'tree', (err) => {
         assert.notOk(err)
-        drive.writeFile('/badger_number_one.txt', 'peanut', (err) => {
+        drive.writeFile(filesToWrite[1], 'peanut', (err) => {
           assert.notOk(err)
           drive.readdir('/', (err, files) => {
             assert.notOk(err)
-            console.log('files',files)
-            assert.ok(files)
+            assert.deepEqual(files.sort, filesToWrite.sort, 'files are the same')
             next()
           })
         })
