@@ -1,6 +1,6 @@
 {
-  "name": "kappa-drive",
-  "version": "1.0.0",
+  "name": "@coboxcoop/kappa-drive",
+  "version": "0.0.1",
   "description": "a multiwriter peer to peer filesystem",
   "main": "index.js",
   "scripts": {
@@ -30,5 +30,25 @@
     "tape": "^4.10.1",
     "tape-plus": "^1.0.0",
     "tmp": "^0.1.0"
-  }
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coboxcoop/peer-fs.git"
+  },
+  "keywords": [
+    "kappa",
+    "peer-fs",
+    "kappa-drive",
+    "hyperdrive",
+    "dat",
+    "kappa-core",
+    "multiwriter"
+  ],
+  "bugs": {
+    "url": "https://github.com/coboxcoop/peer-fs/issues"
+  },
+  "homepage": "https://github.com/coboxcoop/peer-fs#readme"
 }
