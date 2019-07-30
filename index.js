@@ -124,7 +124,6 @@ class KappaDrive {
       if (err) return cb(err)
       if (name === '/') return cb(null, fullDirList)
       
-      // const namePath = name.split(path.sep)
       cb(null, fullDirList.filter((filePath) => {
 
         console.log('data', filePath)
