@@ -80,6 +80,24 @@ describe('basic', (context) => {
       next()
     })
   })
+
+  context('basic: readdir', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/stuff/things/ape.txt', 'tree', (err) => {
+        assert.notOk(err)
+        drive.writeFile('/badger_number_one.txt', 'peanut', (err) => {
+          assert.notOk(err)
+          drive.readdir('/', (err, files) => {
+            assert.notOk(err)
+            console.log('files',files)
+            assert.ok(files)
+            next()
+          })
+        })
+      })
+    })
+  })
 })
 
 describe('multiwriter', (context) => {

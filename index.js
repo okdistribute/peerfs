@@ -7,6 +7,9 @@ const MountableHypertrie = require('mountable-hypertrie')
 const hyperdrive = require('hyperdrive')
 const duplexify = require('duplexify')
 const ram = require('random-access-memory')
+const path = require('path')
+const through = require('through2')
+const collect = require('collect-stream')
 
 const STATE = 'state'
 const METADATA = 'metadata'
@@ -116,23 +119,31 @@ class KappaDrive {
 
   readdir (name, opts, cb) {
     if (typeof opts === 'function') return this.readdir(name, null, opts)
-    
     // name = normalizePath(name)
-    if (name === '/') {
-      return this._readdirRoot(opts, cb)
-    }
-
+    this._readdirRoot(opts, (err, fullDirList) => {
+      if (err) return cb(err)
+      if (name === '/') return cb(null, fullDirList)
+      
+      const namePath = name.split(path.sep)
+      cb(null, fullDirList.filter((filePath) => {
+        return filePath.split(path.sep).slice(0, namePath.length) === namePath
+      }))
+    })
   }
   
   _readdirRoot (opts, cb) {
+    var self = this
     // sanitizeDirs()
-    var files = []
     var fileStream = this.core.api.kv.createReadStream()
-    fileStream.on('data', (data) => {
-      files.push(data.key)
-    })
-    fileStream.on('end', () => {
-      cb(null, files)
+    var throughStream = fileStream.pipe(through.obj(function (chunk, enc, next) {
+      self.exists(chunk.key, opts, (exists) => {
+        if (exists) this.push(chunk.key)
+        next()
+      })
+    }))
+    collect(throughStream, (err, data) => {
+      console.log(data)
+      cb(err, data)
     })
   }
 
