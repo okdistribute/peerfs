@@ -60,7 +60,20 @@ Huge credit to [Karissa](https://github.com/karissa) for ideating and writing [p
 
 #### TODO
 
-- [ ] Move all of the functions over from hyperdrive to the top constructor instance (e.g. stat)
+- [ ] Move all of the functions over from hyperdrive to the top constructor instance. (e.g., readdir, stat)
+  - [ ] `lstat`
+  - [ ] `readdir`
+  - [ ] `open`
+  - [ ] `close`
+  - [ ] `read`
+  - [ ] `write`
+  - [x] `truncate`
+  - [ ] `unlink`
+  - [ ] `mkdir`
+  - [ ] `rmdir`
+  - [ ] `create`
+  - [ ] `_update`
+  - [ ] `symlink`
 - [ ] Improve performance and stability of index writes by using something other than JSON.
 - [ ] Allow resolveFork function to get access to the stat object of the file on that write so that it can make a more intelligent display or make better decisions about the fork
 - [ ] Allow forks to be unresolved cc @substack
