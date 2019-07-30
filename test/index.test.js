@@ -80,6 +80,31 @@ describe('basic', (context) => {
       next()
     })
   })
+
+  context('basic: readdir', function (assert, next) {
+    const filesToWrite = [
+      '/stuff/things/ape.txt',
+      '/badger_number_one.txt' 
+    ]
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile(filesToWrite[0], 'tree', (err) => {
+        assert.notOk(err)
+        drive.writeFile(filesToWrite[1], 'peanut', (err) => {
+          assert.notOk(err)
+          drive.readdir('/', (err, files) => {
+            assert.notOk(err)
+            assert.deepEqual(files.sort, filesToWrite.sort, 'files are the same')
+            drive.readdir('/stuff', (err, files) => {
+              assert.error(err)
+              assert.equal(filesToWrite[0], files[0], 'can specify directory')
+              next()
+            })
+          })
+        })
+      })
+    })
+  })
 })
 
 describe('multiwriter', (context) => {
@@ -221,11 +246,13 @@ describe('read access', (context) => {
   context('accepts a top-level key for replication' , (assert, next) => {
     var accessKey = crypto.randomBytes(32)
 
-    var drive = KappaDrive(ram, accessKey)
+    var drive = KappaDrive(ram, { protocolEncryptionKey: accessKey })
 
     drive.ready(() => {
       assert.same(drive.key, accessKey)
       assert.same(drive.core._logs._fake.key, accessKey)
+      var keys = [drive.state.key, drive.metadata.key, drive.content.key]
+      keys.forEach((key) => assert.notEqual(key, accessKey))
       next()
     })
   })
