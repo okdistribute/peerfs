@@ -15,9 +15,9 @@ describe('basic', (context) => {
 
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
-       assert.error(err)
+       assert.error(err, 'no error')
         drive.readFile('/hello.txt', (err, content) => {
-         assert.error(err)
+         assert.error(err, 'no error')
          assert.same(content.toString(), 'world')
          next()
         })
@@ -89,14 +89,14 @@ describe('basic', (context) => {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.writeFile(filesToWrite[0], 'tree', (err) => {
-        assert.notOk(err)
+        assert.error(err, 'no error')
         drive.writeFile(filesToWrite[1], 'peanut', (err) => {
-          assert.notOk(err)
+          assert.error(err, 'no error')
           drive.readdir('/', (err, files) => {
-            assert.notOk(err)
+            assert.error(err, 'no error')
             assert.deepEqual(files.sort, filesToWrite.sort, 'files are the same')
             drive.readdir('/stuff', (err, files) => {
-              assert.error(err)
+              assert.error(err, 'no error')
               assert.equal(filesToWrite[0], files[0], 'can specify directory')
               next()
             })
@@ -114,9 +114,9 @@ describe('multiwriter', (context) => {
 
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
-        assert.error(err)
+        assert.error(err, 'no error')
         drive.writeFile('/hello.txt', 'mundo', (err) => {
-          assert.error(err)
+          assert.error(err, 'no error')
           sync()
         })
       })
@@ -124,7 +124,7 @@ describe('multiwriter', (context) => {
 
     function writeSecond (cb) {
       drive2.writeFile('/hello.txt', 'verden', (err) => {
-        assert.error(err)
+        assert.error(err, 'no error')
         cb()
       })
     }
@@ -133,13 +133,13 @@ describe('multiwriter', (context) => {
       drive2.ready(() => {
         drive2.writeFile('test.txt', 'testing', (err) => {
           replicate(drive, drive2, (err) => {
-            assert.error(err)
+            assert.error(err, 'no error')
             writeSecond(() => {
               replicate(drive, drive2, (err) => {
-                assert.error(err)
+                assert.error(err, 'no error')
                 drive.readFile('/hello.txt', (err, data) => {
-                  assert.error(err)
-                  assert.same(data.toString(), 'verden')
+                  assert.error(err, 'no error')
+                  assert.same(data.toString(), 'verden', 'gets latest value')
                   next()
                 })
               })
@@ -165,19 +165,19 @@ describe('multiwriter', (context) => {
     function writeSecond (cb) {
       var ws = drive2.createWriteStream('/hello.txt')
       ws.on('finish', cb)
-      ws.on('error',assert.error)
+      ws.on('error', assert.error)
       ws.end('verden')
     }
 
     function sync () {
       replicate(drive, drive2, (err) => {
-        assert.error(err)
+        assert.error(err, 'no error')
         writeSecond(() => {
           replicate(drive, drive2, (err) => {
-            assert.error(err)
+            assert.error(err, 'no error')
             var rs = drive.createReadStream('/hello.txt')
             rs.on('data', (data) => {
-              assert.same(data.toString(), 'verden')
+              assert.same(data.toString(), 'verden', 'gets latest value')
               next()
             })
           })
@@ -197,8 +197,7 @@ describe('conflict', (context) => {
   })
 
   context.afterEach((c) => {
-    cleanup(storage1)
-    cleanup(storage2)
+    cleanup('./tmp')
   })
 
   context('fork', (assert, next) => {
@@ -228,12 +227,12 @@ describe('conflict', (context) => {
       var ws = drive.createWriteStream('/hello.txt')
       ws.end('whateverr')
       ws.on('finish', () => {
-        drive2.readFile('/hello.txt', 'utf-8', (err, _drive2) => {
-          assert.error(err)
-          assert.same(_drive2, 'verden')
-          drive.readFile('/hello.txt', 'utf-8', (err, _drive1) => {
-            assert.error(err)
-            assert.same(_drive1, 'whateverr')
+        drive2.readFile('/hello.txt', 'utf-8', (err, data) => {
+          assert.error(err, 'no error')
+          assert.same(data, 'verden')
+          drive.readFile('/hello.txt', 'utf-8', (err, data) => {
+            assert.error(err, 'no error')
+            assert.same(data, 'whateverr', 'forked values')
             next()
           })
         })
@@ -249,10 +248,14 @@ describe('read access', (context) => {
     var drive = KappaDrive(ram, { protocolEncryptionKey: accessKey })
 
     drive.ready(() => {
-      assert.same(drive.key, accessKey)
-      assert.same(drive.core._logs._fake.key, accessKey)
-      var keys = [drive.state.key, drive.metadata.key, drive.content.key]
-      keys.forEach((key) => assert.notEqual(key, accessKey))
+      assert.same(drive.key, accessKey, 'drive key is access key')
+      assert.same(drive.core._logs._fake.key, accessKey, '_fake key is access key')
+      var keys = [
+        { name: 'state', key: drive.state.key },
+        { name: 'metadata', key: drive.metadata.key },
+        { name: 'content', key: drive.content.key }
+      ]
+      keys.forEach((obj) => assert.notEqual(obj.key, accessKey, `${obj.name} key is different to the access key`))
       next()
     })
   })
@@ -260,20 +263,21 @@ describe('read access', (context) => {
 
 
 describe('signing', (context) => {
-  context('sign drive using a custom keypair', (assert, next) => {
+  context('using a custom keypair', (assert, next) => {
     var accessKey = crypto.randomBytes(32)
     var keyPair = crypto.keyPair()
 
     var drive = KappaDrive(ram, {
-      protocolEncryptionKey: accessKey,
       key: keyPair.publicKey,
       secretKey: keyPair.secretKey
     })
 
     drive.ready(() => {
+      // TODO: why does the multiplexer work here if all the keys are the same?
+      // Check what the feeds actually look like, we need to check if there is any conflict in replication
       var keys = uniq([drive.state.key, drive.metadata.key, drive.content.key])
-      assert.same(keys.length, 1)
-      assert.same(keys[0], keyPair.publicKey)
+      assert.same(keys.length, 1, 'uses only one keypair for all writable feeds')
+      assert.same(keys[0], keyPair.publicKey, 'key matches passed public key')
       next()
     })
   })

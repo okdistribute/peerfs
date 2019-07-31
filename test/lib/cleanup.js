@@ -4,6 +4,6 @@ const debug = require('debug')('cleanup')
 module.exports = function (dir) {
   rimraf(dir, (err) => {
     debug("cleanup: ", err ? "FAILED" : "SUCCESS")
-    if (err) cb(err)
+    if (err) throw (err)
   })
 }

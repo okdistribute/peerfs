@@ -120,16 +120,16 @@ class KappaDrive {
 
   readdir (name, opts, cb) {
     if (typeof opts === 'function') return this.readdir(name, null, opts)
+
     this._readdirRoot(opts, (err, fullDirList) => {
       if (err) return cb(err)
       if (name === '/') return cb(null, fullDirList)
-      
       cb(null, fullDirList.filter((filePath) => {
         return (filePath.slice(0, name.length) === name)
       }))
     })
   }
-  
+
   _readdirRoot (opts, cb) {
     var self = this
     this.core.ready('kv', () => {
@@ -141,7 +141,8 @@ class KappaDrive {
         })
       }))
       collect(throughStream, (err, data) => {
-        cb(err, data.map(d => d.filename))
+        if (err) return cb(err)
+        cb(null, data.map(d => d.filename))
       })
     })
   }
