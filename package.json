@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "collect-stream": "^1.2.1",
-    "corestore": "github:coboxcoop/corestore#default-core-in-opts",
+    "corestore": "github:coboxcoop/corestore",
     "hypercore-crypto": "^1.0.0",
     "hyperdrive": "github:mafintosh/hyperdrive",
     "kappa-core": "^4.0.0",
