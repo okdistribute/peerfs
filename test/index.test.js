@@ -259,7 +259,7 @@ describe('read access', (context) => {
 })
 
 
-describe('encryption', (context) => {
+describe('signing', (context) => {
   context('sign drive using a custom keypair', (assert, next) => {
     var accessKey = crypto.randomBytes(32)
     var keyPair = crypto.keyPair()

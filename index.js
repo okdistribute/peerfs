@@ -10,6 +10,7 @@ const ram = require('random-access-memory')
 const path = require('path')
 const through = require('through2')
 const collect = require('collect-stream')
+const crypto = require('hypercore-crypto')
 
 const STATE = 'state'
 const METADATA = 'metadata'
@@ -29,7 +30,7 @@ class KappaDrive {
     }
     if (!opts) opts = {}
 
-    this._id = opts._id || Math.floor(Math.random() * 1000).toString(16)
+    this._id = opts._id || crypto.randomBytes(16)
     this._storage = storage
     this._index = opts.index || memdb()
     this._resolveFork = opts.resolveFork || dumbMerge
@@ -244,7 +245,7 @@ class KappaDrive {
   get discoveryKey () {
     return this.core._logs._fake.discoveryKey
   }
-  
+
   ready (cb) {
     if (this._open) return cb()
     this.open(cb)
