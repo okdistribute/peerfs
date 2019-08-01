@@ -13,6 +13,7 @@
     "corestore": "github:coboxcoop/corestore",
     "hypercore-crypto": "^1.0.0",
     "hyperdrive": "github:mafintosh/hyperdrive",
+    "hyperdrive-fuse": "^1.1.2",
     "kappa-core": "^4.0.0",
     "kappa-view-kv": "^2.0.1",
     "memdb": "^1.3.1",

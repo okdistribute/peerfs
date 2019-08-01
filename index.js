@@ -70,37 +70,25 @@ class KappaDrive {
   }
 
   ready (cb) {
-    if (this._open) return cb()
-    this.open(cb)
+    if (this._isOpen) return cb()
+    this._open(cb)
   }
 
-  open (cb) {
-    var self = this
-
-    this.core.writer(STATE, (err, state) => {
-      if (err) return cb(err)
-      self.state = state
-      self.core.writer(METADATA, (err, metadata) => {
-        if (err) return cb(err)
-        self.metadata = metadata
-        self.core.writer(CONTENT, (err, content) => {
-          if (err) return cb(err)
-          self.content = content
-          self._openDrive(metadata, content, (err, drive) => {
-            debug(`${self._id} [INIT] local keys:\n${[metadata, content, state].map((f) => f.key.toString('hex')).join('\n')}`)
-            if (err) return cb(err)
-            self.drive = drive
-            self._open = true
-            if (cb) cb()
-          })
-        })
-      })
+  open (filename, flags, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      drive.open(filename, flags, cb)
     })
   }
 
   symlink (target, path, cb) {
     this._whoHasFile(target, (err, drive) => {
       drive.symlink(target, path, cb)
+    })
+  }
+
+  unlink (target, cb) {
+    this._whoHasFile(target, (err, drive) => {
+      drive.unlink(target, cb)
     })
   }
 
@@ -122,8 +110,14 @@ class KappaDrive {
     })
   }
 
+  mkdir (name, opts, cb) {
+    this._whoHasFile(name, (err, drive) => {
+      drive.mkdir(name, opts, cb)
+    })
+  }
+
   readFile (filename, opts, cb) {
-    if (!this._open) throw new Error('not ready yet, try calling .ready')
+    if (!this._isOpen) throw new Error('not ready yet, try calling .ready')
     this._whoHasFile(filename, (err, drive) => {
       if (err) return cb(err)
       drive.readFile(filename, opts, cb)
@@ -199,7 +193,31 @@ class KappaDrive {
 
   // ------------------------------------------------------------
 
-  _openDrive (metadata, content, cb) {
+  _open (cb) {
+    var self = this
+
+    this.core.writer(STATE, (err, state) => {
+      if (err) return cb(err)
+      self.state = state
+      self.core.writer(METADATA, (err, metadata) => {
+        if (err) return cb(err)
+        self.metadata = metadata
+        self.core.writer(CONTENT, (err, content) => {
+          if (err) return cb(err)
+          self.content = content
+          self._getDrive(metadata, content, (err, drive) => {
+            debug(`${self._id} [INIT] local keys:\n${[metadata, content, state].map((f) => f.key.toString('hex')).join('\n')}`)
+            if (err) return cb(err)
+            self.drive = drive
+            self._isOpen = true
+            if (cb) cb()
+          })
+        })
+      })
+    })
+  }
+
+  _getDrive (metadata, content, cb) {
     var store = corestore(this.storage, { defaultCore: metadata })
 
     var drive = hyperdrive(ram, metadata.key, {
@@ -228,7 +246,7 @@ class KappaDrive {
         var content = this.core.feed(winner.content)
         debug(`[INDEX] content key: ${content}`)
         if (!content) return cb(new Error('invalid key for content'))
-        this._openDrive(metadata, content, cb)
+        this._getDrive(metadata, content, cb)
       })
     })
   }

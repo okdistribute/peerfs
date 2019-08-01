@@ -45,7 +45,18 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: exists', function (assert, next) {
+  context('open', (assert, next) => {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.open('/hello.txt', 'w+', function (err, fd) {
+        assert.error(err, 'no error')
+        assert.same(typeof fd, 'number', `returns a reference to the drive's file descriptor`)
+        next()
+      })
+    })
+  })
+
+  context('exists', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.exists('/hello.txt', function (bool) {
@@ -61,7 +72,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: stat', function (assert, next) {
+  context('stat', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
@@ -75,7 +86,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: lstat', function (assert, next) {
+  context('lstat', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
@@ -89,7 +100,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: symlink', function (assert, next) {
+  context('symlink', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
@@ -105,7 +116,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: truncate', function (assert, next) {
+  context('truncate', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       drive.writeFile('/hello.txt', 'world', (err) => {
@@ -121,7 +132,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: give keys', function (assert, next) {
+  context('keys', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
       assert.ok(Buffer.isBuffer(drive.key), 'drive.key returns a buffer')
@@ -130,7 +141,7 @@ describe('basic', (context) => {
     })
   })
 
-  context('basic: readdir', function (assert, next) {
+  context('readdir', function (assert, next) {
     const filesToWrite = [
       '/stuff/things/ape.txt',
       '/badger_number_one.txt' 

@@ -64,13 +64,13 @@ Huge credit to [Karissa](https://github.com/karissa) for ideating and writing [p
   - [x] `stat`
   - [x] `lstat`
   - [x] `readdir`
-  - [ ] `open`
+  - [x] `open`
   - [ ] `close`
   - [ ] `read`
   - [ ] `write`
   - [x] `truncate`
-  - [ ] `unlink`
-  - [ ] `mkdir`
+  - [x] `unlink`
+  - [x] `mkdir`
   - [ ] `rmdir`
   - [ ] `create`
   - [ ] `_update`
