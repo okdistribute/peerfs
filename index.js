@@ -57,40 +57,70 @@ class KappaDrive {
     this.core.use('kv', this.kvidx)
   }
 
-  _openDrive (metadata, content, cb) {
-    var store = corestore(this.storage, { defaultCore: metadata })
-
-    var drive = hyperdrive(ram, metadata.key, {
-      corestore,
-      metadata,
-      _content: content,
-      _db: new MountableHypertrie(store, metadata.key, {
-        feed: metadata,
-        sparse: this.sparseMetadata
-      })
-    })
-
-    drive.ready(() => cb(null, drive))
+  get key () {
+    return this.core._logs._fake.key
   }
 
-  _whoHasFile (filename, cb) {
-    this.core.ready('kv', () => {
-      this.core.api.kv.get(filename, (err, msgs = []) => {
-        if (err && !err.notFound) return cb(err)
-        var values = msgs.map(msg => JSON.parse(msg.value.toString()))
-        if (!values || !values.length) return cb(null, this.drive)
-        var winner = this._resolveFork(values)
-        var metadata = this.core.feed(winner.metadata)
-        var content = this.core.feed(winner.content)
-        if (!metadata || !content) return cb(new Error('missing drive'))
-        this._openDrive(metadata, content, cb)
+  get discoveryKey () {
+    return this.core._logs._fake.discoveryKey
+  }
+
+  replicate () {
+    return this.core.replicate()
+  }
+
+  ready (cb) {
+    if (this._open) return cb()
+    this.open(cb)
+  }
+
+  open (cb) {
+    var self = this
+
+    this.core.writer(STATE, (err, state) => {
+      if (err) return cb(err)
+      self.state = state
+      self.core.writer(METADATA, (err, metadata) => {
+        if (err) return cb(err)
+        self.metadata = metadata
+        self.core.writer(CONTENT, (err, content) => {
+          if (err) return cb(err)
+          self.content = content
+          self._openDrive(metadata, content, (err, drive) => {
+            debug(`${self._id} [INIT] local keys:\n${[metadata, content, state].map((f) => f.key.toString('hex')).join('\n')}`)
+            if (err) return cb(err)
+            self.drive = drive
+            self._open = true
+            if (cb) cb()
+          })
+        })
       })
+    })
+  }
+
+  stat (filename, opts, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      drive.stat(filename, opts, cb)
+    })
+  }
+
+  lstat (filename, opts, cb) {
+    this._whoHasFile(filename, (err, drive) => {
+      drive.lstat(filename, opts, cb)
     })
   }
 
   exists (filename, opts, cb) {
     this._whoHasFile(filename, (err, drive) => {
       drive.exists(filename, opts, cb)
+    })
+  }
+
+  readFile (filename, opts, cb) {
+    if (!this._open) throw new Error('not ready yet, try calling .ready')
+    this._whoHasFile(filename, (err, drive) => {
+      if (err) return cb(err)
+      drive.readFile(filename, opts, cb)
     })
   }
 
@@ -103,21 +133,6 @@ class KappaDrive {
     return proxy
   }
 
-  readFile (filename, opts, cb) {
-    if (!this._open) throw new Error('not ready yet, try calling .ready')
-    this._whoHasFile(filename, (err, drive) => {
-      if (err) return cb(err)
-      drive.readFile(filename, opts, cb)
-    })
-  }
-
-  truncate (filename, size, cb) {
-    this._whoHasFile(filename, (err, drive) => {
-      if (err) return cb(err)
-      drive.truncate(filename, size, cb)
-    })
-  }
-
   readdir (name, opts, cb) {
     if (typeof opts === 'function') return this.readdir(name, null, opts)
 
@@ -128,52 +143,6 @@ class KappaDrive {
         return (filePath.slice(0, name.length) === name)
       }))
     })
-  }
-
-  _readdirRoot (opts, cb) {
-    var self = this
-    this.core.ready('kv', () => {
-      var fileStream = this.core.api.kv.createReadStream()
-      var throughStream = fileStream.pipe(through.obj(function (chunk, enc, next) {
-        self.exists(chunk.key, opts, (exists) => {
-          if (exists) this.push({ filename: chunk.key })
-          next()
-        })
-      }))
-      collect(throughStream, (err, data) => {
-        if (err) return cb(err)
-        cb(null, data.map(d => d.filename))
-      })
-    })
-  }
-
-  _getLinks (filename, cb) {
-    this.core.ready('kv', () => {
-      this.core.api.kv.get(filename, (err, msgs) => {
-        if (err && !err.notFound) return cb(err)
-        var links = msgs ? msgs.map((v) => v.key + '@' + v.seq) : []
-        return cb(null, links)
-      })
-    })
-  }
-
-  _finishWrite (filename, links, cb) {
-    // TODO: we probably should record the seq of the metadata/content as well
-    // and perform a checkout to that hyperdrive seq on reads
-    let metadata = this.metadata.key.toString('hex')
-    let content = this.content.key.toString('hex')
-
-    var res = {
-      filename,
-      links,
-      metadata,
-      content,
-    }
-
-    debug(`${this._id} [WRITE] writing latest file system state\n${JSON.stringify(res)}`)
-
-    // TODO: ew JSON stringify is slow... lets use protobuf instead
-    this.state.append(JSON.stringify(res), cb)
   }
 
   writeFile (filename, data, cb) {
@@ -215,44 +184,93 @@ class KappaDrive {
     return proxy
   }
 
-  open (cb) {
-    var self = this
-
-    this.core.writer(STATE, (err, state) => {
+  truncate (filename, size, cb) {
+    this._whoHasFile(filename, (err, drive) => {
       if (err) return cb(err)
-      self.state = state
-      self.core.writer(METADATA, (err, metadata) => {
-        if (err) return cb(err)
-        self.metadata = metadata
-        self.core.writer(CONTENT, (err, content) => {
-          if (err) return cb(err)
-          self.content = content
-          self._openDrive(metadata, content, (err, drive) => {
-            debug(`${self._id} [INIT] local keys:\n${[metadata, content, state].map((f) => f.key.toString('hex')).join('\n')}`)
-            if (err) return cb(err)
-            self.drive = drive
-            self._open = true
-            if (cb) cb()
-          })
-        })
+      drive.truncate(filename, size, cb)
+    })
+  }
+
+  // ------------------------------------------------------------
+
+  _openDrive (metadata, content, cb) {
+    var store = corestore(this.storage, { defaultCore: metadata })
+
+    var drive = hyperdrive(ram, metadata.key, {
+      corestore,
+      metadata,
+      _content: content,
+      _db: new MountableHypertrie(store, metadata.key, {
+        feed: metadata,
+        sparse: this.sparseMetadata
+      })
+    })
+
+    drive.ready(() => cb(null, drive))
+  }
+
+  _whoHasFile (filename, cb) {
+    this.core.ready('kv', () => {
+      this.core.api.kv.get(filename, (err, msgs = []) => {
+        if (err && !err.notFound) return cb(err)
+        var values = msgs.map(msg => JSON.parse(msg.value.toString()))
+        if (!values || !values.length) return cb(null, this.drive)
+        var winner = this._resolveFork(values)
+        var metadata = this.core.feed(winner.metadata)
+        debug(`[INDEX] metadata key: ${metadata}`)
+        if (!metadata) return cb(new Error('invalid key for metadata'))
+        var content = this.core.feed(winner.content)
+        debug(`[INDEX] content key: ${content}`)
+        if (!content) return cb(new Error('invalid key for content'))
+        this._openDrive(metadata, content, cb)
       })
     })
   }
 
-  get key () {
-    return this.core._logs._fake.key
+  _readdirRoot (opts, cb) {
+    var self = this
+    this.core.ready('kv', () => {
+      var fileStream = this.core.api.kv.createReadStream()
+      var throughStream = fileStream.pipe(through.obj(function (chunk, enc, next) {
+        self.exists(chunk.key, opts, (exists) => {
+          if (exists) this.push({ filename: chunk.key })
+          next()
+        })
+      }))
+      collect(throughStream, (err, data) => {
+        if (err) return cb(err)
+        cb(null, data.map(d => d.filename))
+      })
+    })
   }
 
-  get discoveryKey () {
-    return this.core._logs._fake.discoveryKey
+
+  _getLinks (filename, cb) {
+    this.core.ready('kv', () => {
+      this.core.api.kv.get(filename, (err, msgs) => {
+        if (err && !err.notFound) return cb(err)
+        var links = msgs ? msgs.map((v) => v.key + '@' + v.seq) : []
+        return cb(null, links)
+      })
+    })
   }
 
-  ready (cb) {
-    if (this._open) return cb()
-    this.open(cb)
-  }
+  _finishWrite (filename, links, cb) {
+    // TODO: we probably should record the seq of the metadata/content as well
+    // and perform a checkout to that hyperdrive seq on reads
+    let metadata = this.metadata.key.toString('hex')
+    let content = this.content.key.toString('hex')
 
-  replicate () {
-    return this.core.replicate()
+    var res = {
+      filename,
+      links,
+      metadata,
+      content,
+    }
+
+    debug(`${this._id} [WRITE] writing latest file system state\n${JSON.stringify(res)}`)
+
+    // TODO: ew JSON stringify is slow... lets use protobuf instead
+    this.state.append(JSON.stringify(res), cb)
   }
 }

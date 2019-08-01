@@ -61,8 +61,9 @@ Huge credit to [Karissa](https://github.com/karissa) for ideating and writing [p
 #### TODO
 
 - [ ] Move all of the functions over from hyperdrive to the top constructor instance. (e.g., readdir, stat)
-  - [ ] `lstat`
-  - [ ] `readdir`
+  - [x] `stat`
+  - [x] `lstat`
+  - [x] `readdir`
   - [ ] `open`
   - [ ] `close`
   - [ ] `read`

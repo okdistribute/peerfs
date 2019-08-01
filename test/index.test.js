@@ -56,6 +56,34 @@ describe('basic', (context) => {
     })
   })
 
+  context('basic: stat', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/hello.txt', 'world', (err) => {
+        assert.error(err, 'no error')
+        drive.stat('/hello.txt', (err, stats) => {
+          assert.ok(stats)
+          console.log(stats)
+          next()
+        })
+      })
+    })
+  })
+
+  context('basic: lstat', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/hello.txt', 'world', (err) => {
+        assert.error(err, 'no error')
+        drive.lstat('/hello.txt', (err, stats) => {
+          assert.ok(stats)
+          console.log(stats)
+          next()
+        })
+      })
+    })
+  })
+
   context('basic: truncate', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
