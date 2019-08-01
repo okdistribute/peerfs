@@ -74,7 +74,7 @@ Huge credit to [Karissa](https://github.com/karissa) for ideating and writing [p
   - [ ] `rmdir`
   - [ ] `create`
   - [ ] `_update`
-  - [ ] `symlink`
+  - [x] `symlink`
 - [ ] Improve performance and stability of index writes by using something other than JSON.
 - [ ] Allow resolveFork function to get access to the stat object of the file on that write so that it can make a more intelligent display or make better decisions about the fork
 - [ ] Allow forks to be unresolved cc @substack

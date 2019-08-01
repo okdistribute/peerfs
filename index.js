@@ -98,6 +98,12 @@ class KappaDrive {
     })
   }
 
+  symlink (target, path, cb) {
+    this._whoHasFile(target, (err, drive) => {
+      drive.symlink(target, path, cb)
+    })
+  }
+
   stat (filename, opts, cb) {
     this._whoHasFile(filename, (err, drive) => {
       drive.stat(filename, opts, cb)

@@ -1,6 +1,7 @@
 const { describe } = require('tape-plus')
 const ram = require('random-access-memory')
 const crypto = require('hypercore-crypto')
+const Stat = require('hyperdrive/lib/stat')
 
 const KappaDrive = require('../')
 
@@ -8,6 +9,10 @@ const replicate = require('./lib/replicate')
 const tmp = require('./lib/tmp')
 const cleanup = require('./lib/cleanup')
 const uniq = require('./lib/uniq')
+
+// A lot of these tests are just re-testing Hyperdrive,
+// ensuring the fs API is the same in KappaDrive
+// but ultimately we're re-testing _whoHasFile most of the time
 
 describe('basic', (context) => {
   context('write and read latest value', (assert, next) => {
@@ -18,7 +23,7 @@ describe('basic', (context) => {
        assert.error(err, 'no error')
         drive.readFile('/hello.txt', (err, content) => {
          assert.error(err, 'no error')
-         assert.same(content.toString(), 'world')
+         assert.same(content, Buffer.from('world'))
          next()
         })
       })
@@ -33,7 +38,7 @@ describe('basic', (context) => {
       ws.on('finish', () => {
         var rs = drive.createReadStream('/hello.txt')
         rs.on('data', (data) => {
-          assert.same(data.toString(), 'world')
+          assert.same(data, Buffer.from('world'))
           next()
         })
       })
@@ -62,8 +67,8 @@ describe('basic', (context) => {
       drive.writeFile('/hello.txt', 'world', (err) => {
         assert.error(err, 'no error')
         drive.stat('/hello.txt', (err, stats) => {
-          assert.ok(stats)
-          console.log(stats)
+          assert.error(err, 'no error')
+          assert.ok(stats instanceof Stat)
           next()
         })
       })
@@ -76,9 +81,25 @@ describe('basic', (context) => {
       drive.writeFile('/hello.txt', 'world', (err) => {
         assert.error(err, 'no error')
         drive.lstat('/hello.txt', (err, stats) => {
-          assert.ok(stats)
-          console.log(stats)
+          assert.error(err, 'no error')
+          assert.ok(stats instanceof Stat)
           next()
+        })
+      })
+    })
+  })
+
+  context('basic: symlink', function (assert, next) {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/hello.txt', 'world', (err) => {
+        assert.error(err, 'no error')
+        drive.symlink('/hello.txt', '/world.txt', (err) => {
+          assert.error(err, 'no error')
+          drive.readFile('/world.txt', (err, data) => {
+            assert.same(data, Buffer.from('world'), 'symlinked')
+            next()
+          })
         })
       })
     })
@@ -167,7 +188,7 @@ describe('multiwriter', (context) => {
                 assert.error(err, 'no error')
                 drive.readFile('/hello.txt', (err, data) => {
                   assert.error(err, 'no error')
-                  assert.same(data.toString(), 'verden', 'gets latest value')
+                  assert.same(data, Buffer.from('verden'), 'gets latest value')
                   next()
                 })
               })
@@ -205,7 +226,7 @@ describe('multiwriter', (context) => {
             assert.error(err, 'no error')
             var rs = drive.createReadStream('/hello.txt')
             rs.on('data', (data) => {
-              assert.same(data.toString(), 'verden', 'gets latest value')
+              assert.same(data, Buffer.from('verden'), 'gets latest value')
               next()
             })
           })
