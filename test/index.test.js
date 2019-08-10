@@ -56,6 +56,24 @@ describe('basic', (context) => {
     })
   })
 
+  context('read', (assert, next) => {
+    var drive = KappaDrive(tmp())
+    drive.ready(() => {
+      drive.writeFile('/bonjour.txt', 'monde', (err) => {
+        assert.error(err, 'no error')
+        drive.open('/bonjour.txt', 'r', function (err, fd) {
+          assert.error(err, 'no error')
+          var data = Buffer.alloc('monde'.length)
+          drive.read(fd, data, 0, 5, null, (err, bytesRead, readData) => {
+            assert.error(err, 'drive.read returns no error')
+            assert.same(readData, Buffer.from('world'))
+            next()
+          })
+        })
+      })
+    })
+  })
+
   context('exists', function (assert, next) {
     var drive = KappaDrive(tmp())
     drive.ready(() => {
