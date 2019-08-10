@@ -20,6 +20,8 @@ function dumbMerge (values) {
   return values[0]
 }
 
+const fileDescriptors = memdb()
+
 module.exports = (storage, key, opts) => new KappaDrive(storage, key, opts)
 
 class KappaDrive {
@@ -76,7 +78,13 @@ class KappaDrive {
 
   open (filename, flags, cb) {
     this._whoHasFile(filename, (err, drive) => {
-      drive.open(filename, flags, cb)
+      drive.open(filename, flags, (err, fd) => {
+        if (err) return cb (err)
+        fileDescriptors.put(fd, filename, (err) => {
+          if (err) return cb(err)
+          cb(null, fd)
+        })
+      })
     })
   }
 
@@ -110,17 +118,38 @@ class KappaDrive {
     })
   }
 
+  // is this right?  mkdir is a write operation
   mkdir (name, opts, cb) {
     this._whoHasFile(name, (err, drive) => {
       drive.mkdir(name, opts, cb)
     })
   }
+  // i would suggest something more like this (although i dont know how hyperdrive handles directories)
+  // mkdir (name, opts, cb) {
+  //   this._getLinks(name, (err, links) => {
+  //     if (err) return cb(err)
+  //     this.drive.mkdir(name, data, (err) => {
+  //       if (err) return cb(err)
+  //       this._finishWrite(name, links, cb)
+  //     })
+  //   })
+  // }
 
   readFile (filename, opts, cb) {
     if (!this._isOpen) throw new Error('not ready yet, try calling .ready')
     this._whoHasFile(filename, (err, drive) => {
       if (err) return cb(err)
       drive.readFile(filename, opts, cb)
+    })
+  }
+
+  read (fd, buf, offset, len, position, cb) {
+    fileDescriptors.get(fd, (err, filename) => {
+      if (err) return cb(err)
+      this._whoHasFile(filename, (err, drive) => {
+        if (err) return cb(err)
+        drive.read(fd, buf, offset, len, position, cb)
+      })
     })
   }
 
