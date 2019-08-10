@@ -2,10 +2,13 @@ const ram = require('random-access-memory')
 const rimraf = require('rimraf')
 const { mount, unmount, getHandlers  } = require('hyperdrive-fuse')
 const KappaDrive = require('./')
+const mkdirp = require('mkdirp').sync
+const MOUNTDIR = './mnt'
 
 async function peerfsMount () {
   var drive = KappaDrive(ram)
-  var { destroy } = await mount(drive, './mnt')
+  mkdirp(MOUNTDIR)
+  var { destroy } = await mount(drive, MOUNTDIR)
   process.once('SIGINT', () => cleanup(destroy))
 }
 
