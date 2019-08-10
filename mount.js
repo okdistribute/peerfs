@@ -5,14 +5,14 @@ const KappaDrive = require('./')
 const mkdirp = require('mkdirp').sync
 const MOUNTDIR = './mnt'
 
-async function peerfsMount () {
-  var drive = KappaDrive(ram)
+async function peerfsMount (drive) {
   mkdirp(MOUNTDIR)
   var { destroy } = await mount(drive, MOUNTDIR)
   process.once('SIGINT', () => cleanup(destroy))
 }
 
-peerfsMount()
+var drive = KappaDrive(ram)
+peerfsMount(drive)
 
 function cleanup (destroy) {
   return new Promise((resolve, reject) => {
